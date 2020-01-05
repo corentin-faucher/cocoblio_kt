@@ -2,6 +2,7 @@
 
 package com.coq.cocoblio
 
+import com.coq.cocoblio.Node.Companion.showFrame
 import kotlin.math.*
 
 /** Un noeud est la structure de base de l'app... */
@@ -379,6 +380,10 @@ open class Node {
             width.newReferentialAsDelta(sqP.sx, sqQ.sx)
             height.newReferentialAsDelta(sqP.sy, sqQ.sy)
         }
+    }
+
+    companion object {
+        var showFrame = false
     }
 }
 
@@ -803,6 +808,15 @@ fun <T:Node> T.alsoAddEdtStrWithFrame(id: Int, frameResID: Int = R.drawable.fram
     return this
 }
 
+/** Ajout d'une surface pour visualiser la taille d'un "bloc".
+ * L'option Node.showFrame doit être "true". */
+fun Node.tryToAddFrame() {
+    @Suppress("ConstantConditionIf")
+    if (!showFrame) return
+    Surface(this, R.drawable.test_frame, 0f, 0f, height.realPos,
+        0f, 0, Flag1.surfaceDontRespectRatio).also{it.width.setPos(width.realPos)}
+}
+
 /** Aligner les descendants d'un noeud. Retourne le nombre de descendants traités. */
 fun Node.alignTheChildren(alignOpt: Int, ratio: Float = 1f, spacingRef: Float = 1f) : Int {
     var sq = Squirrel(this)
@@ -913,7 +927,8 @@ fun Node.adjustWidthAndHeightFromChildren() {
     height.setPos(h)
 }
 
-/** La fonction utilisé par défaut pour CoqRenderer.setNodeForDrawing. */
+/** La fonction utilisé par défaut pour CoqRenderer.setNodeForDrawing.
+ * Retourne la surface à afficher (le noeud présent si c'est une surface). */
 fun Node.defaultSetNodeForDrawing() : Surface? {
     // 1. Init de la matrice model avec le parent.
     parent?.let {
@@ -951,7 +966,7 @@ fun Node.defaultSetNodeForDrawing() : Surface? {
         piu.model.scale(width.pos, height.pos, 1f)
     }
 
-    if(mesh === Mesh.defaultSprite) {
+    if(mesh === Mesh.defaultFan) {
         mesh.updateAsAFanWith(0.5f + 0.5f*sin(CoqRenderer.shadersTime.elsapsedSec))
     }
 
