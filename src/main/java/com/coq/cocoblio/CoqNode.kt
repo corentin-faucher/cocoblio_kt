@@ -380,20 +380,20 @@ open class Node {
             width.newReferentialAsDelta(sqP.sx, sqQ.sx)
             height.newReferentialAsDelta(sqP.sy, sqQ.sy)
         }
+        String.CASE_INSENSITIVE_ORDER
     }
 
     companion object {
         var showFrame = false
+
     }
 }
+
 
 /*---------------------------------------*/
 /*-- Les interfaces / protocoles. -------*/
 /*---------------------------------------*/
 
-interface ButtonAction {
-    fun action(ge: GameEngineBase)
-}
 /** KeyboardKey peut être lié à un noeud-bouton ou simplement un event du clavier. */
 interface KeyboardKey {
     val scancode: Int
@@ -414,6 +414,10 @@ interface DraggableNode {
 /** Pour les type de noeud devant être vérifié à l'ouverture. */
 interface OpenableNode {
     fun open()
+}
+/** Pour les noeuds pouvant être "activés", i.e. les boutons. */
+interface ActionableNode {
+    fun action()
 }
 
 /*---------------------------------------*/
@@ -671,7 +675,7 @@ class EdtStrSurf : Surface, OpenableNode {
 /** Classe de base des boutons.
  * Par défaut un bouton n'est qu'un carré sans surface.
  * Un bouton est sélectionnable. */
-abstract class Button : Node, ButtonAction {
+abstract class Button : Node, ActionableNode {
     constructor(refNode: Node?, x: Float, y: Float, height: Float,
                 lambda: Float = 0f, flags: Long = 0
     ) : super(refNode, x, y, height, height, lambda,
@@ -687,8 +691,9 @@ abstract class Button : Node, ButtonAction {
 
 /** Classe de base des boutons de type "on/off".
  * Contient déjà les sous-noeuds de surface d'une switch. */
+@Suppress("LeakingThis")
 abstract class SwitchButton(refNode: Node?, var isOn: Boolean,
-    x: Float, y: Float, height: Float, lambda: Float = 0f, flags: Long = 0
+                            x: Float, y: Float, height: Float, lambda: Float = 0f, flags: Long = 0
 ) : Button(refNode, x, y, height, lambda, flags), DraggableNode {
     private val back: Surface
     private val nub: Surface

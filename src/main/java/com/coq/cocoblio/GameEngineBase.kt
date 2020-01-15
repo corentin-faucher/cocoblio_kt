@@ -3,7 +3,6 @@
 package com.coq.cocoblio
 
 import android.content.Context
-import android.content.res.Configuration
 import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.system.exitProcess
@@ -63,6 +62,7 @@ abstract class GameEngineBase(val ctx: Context) {
         newScreen.openBranch(::extraCheckNodeAtOpening)
         changeScreenSoundID?.let{SoundManager.play(it, 0, 0.5f)}
     }
+
 /* OBSOLETE
 
     open fun checkScreenForOpening(screen: Screen) {}
