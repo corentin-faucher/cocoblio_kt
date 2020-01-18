@@ -271,6 +271,29 @@ fun IntArray.save(prefFileID: String, arrayKeyID: String, ctx: Context) {
         apply()
     }
 }
+
+fun IntArray.serialize() : String {
+    // 1. Convertion en byteBuffer/byteArray.
+    val byteBuffer = ByteBuffer.allocate(size * 4)
+    val intBuffer = byteBuffer.asIntBuffer()
+    intBuffer.put(this)
+    val byteArray = byteBuffer.array()
+    // 2. Conversion en string.
+    return Base64.encodeToString(byteArray, Base64.DEFAULT)
+}
+
+fun UnserializeIntArray(byteArrayAsStr:String) : IntArray? {
+    if(byteArrayAsStr.isEmpty())
+        return null
+    val byteArray = Base64.decode(byteArrayAsStr, Base64.DEFAULT)
+    val byteBuffer = ByteBuffer.wrap(byteArray)
+    // 2. Remettre dans un intArray
+    val intBuffer = byteBuffer.asIntBuffer()
+    val intArray = IntArray(intBuffer.capacity())
+    intBuffer.get(intArray)
+
+    return intArray
+}
 /** Chargement d'un array de int */
 fun loadIntArray(prefFileID: String, arrayKeyID: String, ctx: Context) : IntArray? {
     // 1. Récupérer le bitArray
@@ -310,7 +333,49 @@ fun IntArray.save2(prefFileID: String, arrayKeyID: String, ctx: Context, userKey
     // 4. Sauvegarder
     intArray.save(prefFileID, arrayKeyID, ctx)
 }
-
+fun IntArray.encode(userKey: Int) : IntArray {
+    val intArray = this.copyOf()
+    // 2. 1re passe
+    var uA : Int = 0xeafc8f75.toInt() xor userKey
+    var uE = 0
+    for (index in intArray.indices) {
+        uE = intArray[index] xor uA xor uE
+        intArray[index] = uE
+        uA = uA.shl(1) xor uA.shr(1)
+    }
+    // 3. 2e passe (laisse le dernier)
+    uA = uE
+    uE = 0
+    for (index in 0..(intArray.size-2)) {
+        uE = intArray[index] xor uA xor uE
+        intArray[index] = uE
+        uA = uA.shl(1) xor uA.shr(1)
+    }
+    return intArray
+}
+fun IntArray.decode(userKey: Int) : IntArray {
+    // 1. Charger l'array.
+    val intArray = this;
+    // 2. 1re passe
+    var uA : Int = intArray[intArray.size-1]
+    var uD: Int
+    var uE = 0
+    for (index in 0..(intArray.size-2)) {
+        uD = intArray[index] xor uE xor uA
+        uE = intArray[index]
+        intArray[index] = uD
+        uA = uA.shl(1) xor uA.shr(1)
+    }
+    uA = 0xeafc8f75.toInt() xor userKey
+    uE = 0
+    for (index in intArray.indices) {
+        uD = intArray[index] xor uE xor uA
+        uE = intArray[index]
+        intArray[index] = uD
+        uA = uA.shl(1) xor uA.shr(1)
+    }
+    return intArray
+}
 fun loadIntArray2(prefFileID: String, arrayKeyID: String, ctx: Context, userKey: Int) : IntArray? {
     // 1. Charger l'array.
     val intArray = loadIntArray(prefFileID, arrayKeyID, ctx) ?: return null
