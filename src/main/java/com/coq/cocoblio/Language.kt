@@ -2,9 +2,6 @@
 
 package com.coq.cocoblio
 
-import android.content.Context
-import java.io.IOException
-
 enum class Language(val iso: String) {
     French("fr"),
     English("en"),
@@ -24,20 +21,6 @@ enum class Language(val iso: String) {
     companion object {
         fun setCurrentLanguage(stringCode: String) {
             currentLanguage = isoToEnumMap[stringCode] ?: English
-        }
-
-        fun loadStringFromAssets(fileName: String, ctx: Context, showError: Boolean = true) : String? {
-            return try {
-                ctx.assets.open("${currentLanguage.iso}/$fileName").use { inputStream ->
-                    inputStream.bufferedReader().use { bufferedReader ->
-                        bufferedReader.readText()
-                    }
-                }
-            } catch (e : IOException) {
-                if(showError)
-                    printerror("Ne peut charger \"$fileName\" dans \"${currentLanguage.iso}\".")
-                null
-            }
         }
 
         fun currentIs(language: Language) : Boolean
@@ -64,21 +47,5 @@ enum class Language(val iso: String) {
             "pt" to    Portuguese,
             "ko" to    Korean
         )
-        /*private val longStringArray = arrayOf(
-            "french",
-            "english",
-            "japanese",
-            "german",
-            "chinese_simpl",
-            "italian",
-            "spanish",
-            "arabic",
-            "greek",
-            "russian",
-            "swedish",
-            "chinese_trad",
-            "portuguese",
-            "korean"
-        )*/
     }
 }
