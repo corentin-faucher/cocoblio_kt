@@ -60,7 +60,8 @@ open class Node {
     }
     /** La position obtenue est dans le référentiel du noeud présent,
      *  i.e. au niveau des node.children.
-     * (Si node == nil -> retourne absPos tel quel, cas où node est aNode.parent et parent peut être nul.) */
+     * (Si node == nil -> retourne absPos tel quel,
+     * cas où node est aNode.parent et parent peut être nul.) */
     @Suppress("ControlFlowWithEmptyBody")
     fun relativePosOf(absPos: Vector2) : Vector2 {
         val sq = Squirrel(this, Squirrel.RSI.Scales)
@@ -228,17 +229,6 @@ open class Node {
         }
     }
     /** Change de noeud de place (et ajuste sa position relative). */
-    fun moveToParent(newParent: Node, asElder: Boolean) {
-        setInReferentialOf(newParent)
-        disconnect()
-        connectToParent(newParent, asElder)
-    }
-    /** Change de noeud de place (sans ajuster sa position relative). */
-    fun simpleMoveToParent(newParent: Node, asElder: Boolean) {
-        disconnect()
-        connectToParent(newParent, asElder)
-    }
-    /** Change de noeud de place (et ajuste sa position relative). */
     fun moveToBro(bro: Node, asBigBro: Boolean) {
         val newParent = bro.parent ?: run { printerror("Bro sans parent."); return}
         setInReferentialOf(newParent)
@@ -250,23 +240,17 @@ open class Node {
         disconnect()
         connectToBro(bro, asBigBro)
     }
-
-    /** Échange de place avec "node". */
-    fun permuteWith(node: Node) {
-        val oldParent = parent ?: run { printerror("Manque le parent."); return}
-        if (node.parent === null) {
-            printerror("Manque parent 2."); return}
-
-        if (oldParent.firstChild === this) { // Cas ainé...
-            moveToBro(node, true)
-            node.moveToParent(oldParent, true)
-        } else {
-            val theBigBro = bigBro ?: run { printerror("Pas de bigBro."); return}
-            moveToBro(node, true)
-            node.moveToBro(theBigBro, false)
-        }
+    /** Change de noeud de place (et ajuste sa position relative). */
+    fun moveToParent(newParent: Node, asElder: Boolean) {
+        setInReferentialOf(newParent)
+        disconnect()
+        connectToParent(newParent, asElder)
     }
-
+    /** Change de noeud de place (sans ajuster sa position relative). */
+    fun simpleMoveToParent(newParent: Node, asElder: Boolean) {
+        disconnect()
+        connectToParent(newParent, asElder)
+    }
     /** "Monte" un noeud au niveau du parent. Cas particulier (simplifier) de moveTo(...).
      *  Si c'est une feuille, on ajuste width/height, sinon, on ajuste les scales. */
     fun moveUp(asBigBro: Boolean) : Boolean {
@@ -307,6 +291,21 @@ open class Node {
             scaleY.referentialDownAsDelta(bro.scaleY.realPos)
         }
         return true
+    }
+    /** Échange de place avec "node". */
+    fun permuteWith(node: Node) {
+        val oldParent = parent ?: run { printerror("Manque le parent."); return}
+        if (node.parent === null) {
+            printerror("Manque parent 2."); return}
+
+        if (oldParent.firstChild === this) { // Cas ainé...
+            moveToBro(node, true)
+            node.moveToParent(oldParent, true)
+        } else {
+            val theBigBro = bigBro ?: run { printerror("Pas de bigBro."); return}
+            moveToBro(node, true)
+            node.moveToBro(theBigBro, false)
+        }
     }
 
     /*-- Private stuff... --*/
