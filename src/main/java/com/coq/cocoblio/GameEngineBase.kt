@@ -11,7 +11,7 @@ import kotlin.system.exitProcess
 abstract class GameEngineBase(val ctx: Context) {
     val root: Node = Node(null, 0f, 0f, 4f, 4f, 0f,
         Flag1.exposed or Flag1.show or Flag1.branchToDisplay or Flag1.selectableRoot)
-    var activeScreenOpt: Screen? = null
+    var activeScreenOpt: ScreenBase? = null
         protected set
     var selectedNodeOpt: Node? = null
         protected set
@@ -37,7 +37,7 @@ abstract class GameEngineBase(val ctx: Context) {
 
 
     /** Ne fait rien, si on est déjà au bon endroit. */
-    fun changeActiveScreen(newScreen: Screen?) {
+    fun changeActiveScreen(newScreen: ScreenBase?) {
         // 0. Cas "réouverture" de l'écran -> Reouvre sans extra.
         if(activeScreenOpt == newScreen) {
             newScreen?.closeBranch()
