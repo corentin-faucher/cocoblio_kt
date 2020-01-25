@@ -432,10 +432,10 @@ abstract class ScreenBase(refNode: Node,
 ) : Node(refNode, 0f, 0f, 4f, 4f, 0f, flags), OpenableNode {
 
     override fun open() {
-        reshape()
+        reshape(true)
     }
     open fun reshape() {
-        reshape(true)
+        reshape(false)
     }
 
     fun reshape(isOpening:  Boolean) {
