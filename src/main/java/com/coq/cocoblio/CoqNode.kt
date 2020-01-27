@@ -423,21 +423,21 @@ interface ActionableNode {
 /*-- Les sous-classes importantes. ------*/
 /*---------------------------------------*/
 
-/** Noeud racine d'une "fenêtre". Pas fonction du projet car besoin dans GameEngineBase... */
-class Screen : Node, OpenableNode {
-    // Les action par défaut pour enter et escape dans cet écran.
-    val escapeAction: (()->Unit)?
-    val enterAction: (()->Unit)?
-
-    constructor(refNode: Node, escapeAction: (()->Unit)?, enterAction: (()->Unit)?, flags: Long = 0
-    ) : super(refNode, 0f, 0f, 4f, 4f, 0f, flags) {
-        this.escapeAction = escapeAction
-        this.enterAction = enterAction
-    }
+/** Modèle pour les noeuds racine d'un screen.
+ * escapeAction: l'action dans cet écran quand on appuie "escape".
+ * enterAction: l'action quand on tape "enter". */
+abstract class ScreenBase(refNode: Node,
+                          val escapeAction: (() -> Unit)?, val enterAction: (() -> Unit)?,
+                          flags: Long = 0
+) : Node(refNode, 0f, 0f, 4f, 4f, 0f, flags), OpenableNode {
 
     override fun open() {
         reshape(true)
     }
+    open fun reshape() {
+        reshape(false)
+    }
+
     fun reshape(isOpening:  Boolean) {
         if (!containsAFlag(Flag1.dontAlignScreenElements)) {
             val ceiledScreenRatio = CoqRenderer.frameUsableWidth / CoqRenderer.frameUsableHeight
@@ -460,16 +460,6 @@ class Screen : Node, OpenableNode {
             height.setPos(CoqRenderer.frameUsableHeight, isOpening)
         }
     }
-
-    /** Constructeur de copie. */
-    constructor(refNode: Node?, toCloneNode: Screen,
-                asParent: Boolean = true, asElderBigbro: Boolean = false
-    ) : super(refNode, toCloneNode, asParent, asElderBigbro) {
-        this.escapeAction = toCloneNode.escapeAction
-        this.enterAction = toCloneNode.enterAction
-    }
-    override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
-        = Screen(refNode, this, asParent, asElderBigbro)
 }
 
 /** Un noeud "surface". Noeud qui est affiché. Possède une texture (image png par exemple)
