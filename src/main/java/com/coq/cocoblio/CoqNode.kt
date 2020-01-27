@@ -424,7 +424,7 @@ interface ActionableNode {
 /*---------------------------------------*/
 
 /** Modèle pour les noeuds racine d'un screen.
- * escapeAction: l'action dans cette écran quand on appuie "escape".
+ * escapeAction: l'action dans cet écran quand on appuie "escape".
  * enterAction: l'action quand on tape "enter". */
 abstract class ScreenBase(refNode: Node,
                           val escapeAction: (() -> Unit)?, val enterAction: (() -> Unit)?,
