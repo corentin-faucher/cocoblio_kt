@@ -1,8 +1,8 @@
 @file:Suppress("unused")
 
-/*------------------------------------------------------*/
-/*-- Quelques extensions utiles pour les Squirrels.   --*/
-/*------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*-- Quelques extensions (de Node) utilisant les Squirrels.   --*/
+/*--------------------------------------------------------------*/
 
 package com.coq.cocoblio.nodes
 
