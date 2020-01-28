@@ -1,5 +1,9 @@
-package com.coq.cocoblio
+package com.coq.cocoblio.nodes
 
+import com.coq.cocoblio.*
+import com.coq.cocoblio.maths.SmPos
+import com.coq.cocoblio.maths.Vector2
+import com.coq.cocoblio.maths.printerror
 import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.math.*

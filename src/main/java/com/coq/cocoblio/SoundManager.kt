@@ -7,6 +7,7 @@ import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
 import android.util.Log
+import com.coq.cocoblio.maths.printerror
 import java.lang.Exception
 import kotlin.math.*
 
@@ -77,7 +78,7 @@ object SoundManager {
     fun playWithResID(resID: Int, pitch: Short = 0, volume: Float = 1f) {
         soundResIDToPoolID[resID]?.let {soundPoolID ->
             play(soundPoolID, pitch, volume)
-        } ?: run{ printerror("Son $resID non chargé.")}
+        } ?: run{ printerror("Son $resID non chargé.") }
     }
 
     private var soundPool: SoundPool? = null

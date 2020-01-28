@@ -1,10 +1,13 @@
 @file:Suppress("MemberVisibilityCanBePrivate", "unused")
 
-package com.coq.cocoblio
+package com.coq.cocoblio.nodes
 
+import com.coq.cocoblio.maths.Vector2
+import com.coq.cocoblio.maths.printerror
 import java.lang.Exception
 import kotlin.math.*
 
+/** Squirrel est un "itérateur" pour se promener dans l'arbre des Nodes. */
 class Squirrel(pos_: Node) {
 
     enum class RSI {Ones, Scales}
@@ -105,7 +108,7 @@ class Squirrel(pos_: Node) {
     /** Revient à l'ainé si arrive en bout de liste (retourne false si ne peut pas y aller, i.e. pas de parent). */
     fun goRightLoop() : Boolean {
         pos.littleBro?.let{pos = it; return true}
-        pos.parent?.let{pos = it.firstChild!!; return true}
+        pos.parent?.firstChild?.let{pos = it; return true}
         return false
     }
     /** Tant que l'on est sur un noeud caché, on bouge vers la droite. Retourne false si abouti en bout de liste.
@@ -117,7 +120,7 @@ class Squirrel(pos_: Node) {
         return true
     }
     /** Va au petit-frère non-caché et du type voulu. */
-    inline fun <reified A:Node> goRightWithoutTyped(flag: Long) : Boolean {
+    inline fun <reified A: Node> goRightWithoutTyped(flag: Long) : Boolean {
         do {
             if(!goRight()) {return false}
         } while((pos !is A) or pos.containsAFlag(flag))

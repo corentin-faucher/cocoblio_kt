@@ -3,6 +3,7 @@
 package com.coq.cocoblio
 
 import android.opengl.GLES20
+import com.coq.cocoblio.maths.printerror
 import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -88,7 +89,8 @@ class Mesh(val vertices: FloatArray, internal val indices: IntArray?, private va
     }
 
     fun updateAsAFanWith(ratio: Float) {
-        if (vertices.size < 80) {printerror("Bad size."); return}
+        if (vertices.size < 80) {
+            printerror("Bad size."); return}
         for(i in 1..9) {
             vertices[i*8]   = -0.5f * sin(ratio*2f* PI.toFloat() * (i-1).toFloat()/8f)
             vertices[i*8+1] = 0.5f * cos(ratio*2f* PI.toFloat() * (i-1).toFloat()/8f)

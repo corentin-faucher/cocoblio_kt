@@ -4,11 +4,15 @@ package com.coq.cocoblio
 
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
+import com.coq.cocoblio.maths.SmPos
+import com.coq.cocoblio.maths.Vector2
+import com.coq.cocoblio.maths.getPerspective
+import com.coq.cocoblio.maths.printerror
+import com.coq.cocoblio.nodes.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.*
 
-private var gameEngineCount = 0
 class CoqRenderer(private val coqActivity: CoqActivity,
                         private val customVertShadResID: Int?,
                         private val customFragShadResID: Int?) : GLSurfaceView.Renderer
@@ -263,6 +267,8 @@ class CoqRenderer(private val coqActivity: CoqActivity,
         private var smB = SmPos(0f, 8f)
         private var widthRatio = SmPos(1f, 8f)
         private var heightRatio = SmPos(1f, 8f)
+
+        private var gameEngineCount = 0
     }
 }
 

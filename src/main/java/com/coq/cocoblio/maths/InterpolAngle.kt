@@ -1,7 +1,11 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate")
 
-package com.coq.cocoblio
+package com.coq.cocoblio.maths
 
+import com.coq.cocoblio.GlobalChrono
+
+/** Angle "moyen" interpollé en fonction des dernières valeurs entrées.
+ * (Pour un roulement smooth.) */
 class InterpolAngle(size: Int, posRef: Float) {
 
     fun pushPos(newPos: Float) {

@@ -3,21 +3,23 @@
 package com.coq.cocoblio
 
 import android.content.Context
+import com.coq.cocoblio.maths.Vector2
+import com.coq.cocoblio.nodes.*
 import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.system.exitProcess
 
-/** Utile ? abstract ? interface ? */
+/** Le Game Engine contrôle les interactions entre les noeuds et gère les events. */
 abstract class GameEngineBase(val ctx: Context) {
     val root: Node = Node(null, 0f, 0f, 4f, 4f, 0f,
         Flag1.exposed or Flag1.show or Flag1.branchToDisplay or Flag1.selectableRoot)
-    var activeScreenOpt: ScreenBase? = null
+    var activeScreen: ScreenBase? = null
         protected set
-    var selectedNodeOpt: Node? = null
+    var selectedNode: Node? = null
         protected set
     var changeScreenSoundID: Int? = null
 
-    /*-- Fonctions à définir pour un projet particulier --*/
+    /*-- Gestion des events. À définir pour un projet particulier --*/
     abstract fun everyFrameAction()
     abstract fun initTouchDrag(posInit: Vector2) // touchDrag est exécuté tout de suite après.
     abstract fun touchDrag(posNow: Vector2)
@@ -32,24 +34,23 @@ abstract class GameEngineBase(val ctx: Context) {
 
     /*-- Fonctions avec implémentation rudimentaire. --*/
     open fun reshapeAction() {
-        activeScreenOpt?.reshape(false)
+        activeScreen?.reshape(false)
     }
-
 
     /** Ne fait rien, si on est déjà au bon endroit. */
     fun changeActiveScreen(newScreen: ScreenBase?) {
         // 0. Cas "réouverture" de l'écran -> Reouvre sans extra.
-        if(activeScreenOpt == newScreen) {
+        if(activeScreen === newScreen) {
             newScreen?.closeBranch()
             newScreen?.openBranch()
             return
         }
         // 1. Si besoin, fermer l'écran actif.
-        activeScreenOpt?.closeBranch(::extraCheckNodeAtClosing)
+        activeScreen?.closeBranch(::extraCheckNodeAtClosing)
 
         // 2. Si null -> fermeture de l'app.
         if (newScreen == null) {
-            activeScreenOpt = null
+            activeScreen = null
             print("newScreen == null -> exit")
             Timer(true).schedule(1000) {
                 exitProcess(0)
@@ -58,30 +59,8 @@ abstract class GameEngineBase(val ctx: Context) {
         }
 
         // 3. Ouverture du nouvel écran.
-        activeScreenOpt = newScreen
+        activeScreen = newScreen
         newScreen.openBranch(::extraCheckNodeAtOpening)
         changeScreenSoundID?.let{SoundManager.play(it, 0, 0.5f)}
     }
-
-/* OBSOLETE
-
-    open fun checkScreenForOpening(screen: Screen) {}
-    open fun checkScreenForClosing(screen: Screen) {}
-    open class CheckNodeForOpening: ((Node) -> Unit) {
-        override fun invoke(node: Node) {}
-    }
-    open class CheckNodeForClosing: ((Node) -> Unit) {
-        override fun invoke(node: Node) {}
-    }
-    open class CheckScreenForOpening: ((Screen) -> Unit) {
-        override fun invoke(screen: Screen) {}
-    }
-    open class CheckScreenForClosing: ((Screen) -> Unit) {
-        override fun invoke(screen: Screen) {}
-    }
-    protected var checkNodeForOpening = CheckNodeForOpening()
-    protected var checkNodeForClosing = CheckNodeForClosing()
-    protected var checkScreenForOpening = CheckScreenForOpening()
-    protected var checkScreenForClosing = CheckScreenForClosing()
-    */
 }

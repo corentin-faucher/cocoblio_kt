@@ -1,7 +1,11 @@
 @file:Suppress("unused", "EXPERIMENTAL_API_USAGE")
 
-package com.coq.cocoblio
+package com.coq.cocoblio.nodes
 
+import com.coq.cocoblio.maths.Digits
+import com.coq.cocoblio.R
+import com.coq.cocoblio.maths.getHighestDecimal
+import com.coq.cocoblio.maths.getTheDigitAt
 import kotlin.math.abs
 import kotlin.math.max
 

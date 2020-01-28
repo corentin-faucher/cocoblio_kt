@@ -1,11 +1,12 @@
-package com.coq.cocoblio
+package com.coq.cocoblio.maths
 
+import com.coq.cocoblio.SmallChrono
 import kotlin.experimental.and
 import kotlin.experimental.or
 import kotlin.math.PI
 import kotlin.math.cos
 
-/** Flag On/Off analogique. */
+/** Smooth Transition est un flag "On/Off" analogique (transition smooth entre 0 et 1). */
 class SmTrans {
     var transTime: Short
     val isActive: Boolean

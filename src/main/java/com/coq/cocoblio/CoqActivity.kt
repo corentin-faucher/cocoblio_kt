@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.view.*
+import com.coq.cocoblio.nodes.KeyboardKey
 
 /** Les events (et donc le gameEngine) sont gérés par le renderer.
  * En effet, ils doivent être dans la thread d'OpenGL...

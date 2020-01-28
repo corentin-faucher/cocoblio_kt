@@ -1,6 +1,6 @@
 @file:Suppress("unused", "EXPERIMENTAL_API_USAGE", "EXPERIMENTAL_UNSIGNED_LITERALS")
 
-package com.coq.cocoblio
+package com.coq.cocoblio.maths
 
 import android.util.Base64
 import java.nio.ByteBuffer

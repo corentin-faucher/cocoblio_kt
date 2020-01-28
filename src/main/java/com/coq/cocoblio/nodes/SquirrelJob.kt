@@ -4,7 +4,10 @@
 /*-- Quelques extensions utiles pour les Squirrels.   --*/
 /*------------------------------------------------------*/
 
-package com.coq.cocoblio
+package com.coq.cocoblio.nodes
+
+import com.coq.cocoblio.maths.Vector2
+import com.coq.cocoblio.maths.printerror
 
 /** Ajouter des flags à une branche (noeud et descendents s'il y en a). */
 fun Node.addBranchFlags(flags: Long) {
@@ -148,7 +151,7 @@ fun Node.searchNodeToSelect(absPos: Vector2, nodeToAvoid: Node?) : Node? {
 
 /*-- Private stuff --*/
 private fun Node.searchNodeToSelectPrivate(relPos: Vector2,
-                                      nodeToAvoid: Node?) : Node? {
+                                           nodeToAvoid: Node?) : Node? {
     val sq = Squirrel(this, relPos, Squirrel.RSI.Ones)
     var candidate: Node? = null
 

@@ -1,5 +1,6 @@
-package com.coq.cocoblio
+package com.coq.cocoblio.nodes
 
+import com.coq.cocoblio.*
 import kotlin.math.max
 
 /** Noeud racine servant de cadre à une surface.

@@ -6,6 +6,7 @@ import android.content.Context
 import android.graphics.*
 import android.opengl.GLES20
 import android.opengl.GLUtils
+import com.coq.cocoblio.maths.printerror
 
 /** Ensemble des info relatives à une texture.
  *  Contient l'ID de resource, l'ID openGL et les dimensions de la texture. */
@@ -83,6 +84,9 @@ class Texture {
 
         bitmap.recycle()
     }
+    private fun initAsPng() {
+
+    }
 
     companion object {
         /*-- Méthodes de bases --*/
@@ -145,7 +149,7 @@ class Texture {
         /*-- Gestion des pngs --*/
         /** Init d'un png quelconque (image dans un projet spécifique) */
         fun initPngTex(resID: Int, m: Int, n: Int, context: Context) {
-            val newTex: Texture = pngList[resID]?.also{printerror("$resID déjà init ?")}
+            val newTex: Texture = pngList[resID]?.also{ printerror("$resID déjà init ?") }
                 ?: Texture()
             newTex.m = m
             newTex.n = n

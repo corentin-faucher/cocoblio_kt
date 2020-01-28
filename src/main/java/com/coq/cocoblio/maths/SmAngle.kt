@@ -1,15 +1,21 @@
-@file:Suppress("MemberVisibilityCanBePrivate", "unused")
+@file:Suppress("unused", "MemberVisibilityCanBePrivate")
 
-package com.coq.cocoblio
+package com.coq.cocoblio.maths
 
-import kotlin.math.*
+import com.coq.cocoblio.GlobalChrono
+import kotlin.math.cos
+import kotlin.math.exp
+import kotlin.math.sin
+import kotlin.math.sqrt
 
-class SmPos(var defPos: Float) : Cloneable {
+/** Angle "smooth" (évolue doucement dans le temps)
+ * l'angle est entre -pi et pi (voir toNormalizedAngle). */
+class SmAngle(var defPos: Float) : Cloneable {
     /** Vrai position (dernière entrée). Le setter FIXE la position. */
     var realPos: Float
         get() = lastPos
         set(newPos) {
-            lastPos = newPos
+            lastPos = newPos.toNormalizedAngle()
             a = 0.0f; b = 0.0f
         }
 
@@ -28,8 +34,8 @@ class SmPos(var defPos: Float) : Cloneable {
             }
         }
         set(newPos) {
-            evalAB(pos - newPos, vit)
-            lastPos = newPos
+            evalAB((pos - newPos).toNormalizedAngle(), vit)
+            lastPos = newPos.toNormalizedAngle()
             setTime = GlobalChrono.elapsedMS32
         }
 
@@ -56,7 +62,7 @@ class SmPos(var defPos: Float) : Cloneable {
     fun updateConstants(gamma: Float, k: Float) {
         // 1. Enregistrer vit et deltaX avant de changer les constantes
         val xp = vit
-        val deltaX = pos - realPos
+        val deltaX = (pos - realPos).toNormalizedAngle()
         // 2. Changer les constantes lambda / beta.
         setConstants(gamma, k)
         // 3. Réévaluer a/b pour nouveau lambda/beta
@@ -70,11 +76,11 @@ class SmPos(var defPos: Float) : Cloneable {
         pos = defPos
     }
     /** Set avec options : fixer ou non, setter aussi la position par défaut ou non. */
-    fun setPos(newPos: Float, fix: Boolean = true, setDef: Boolean = true) {
+    fun setPos(newPos: Float, fix: Boolean, setDef: Boolean) {
         if (setDef)
-            defPos = newPos
+            defPos = newPos.toNormalizedAngle()
         if (fix) {
-            realPos = newPos
+            realPos = newPos.toNormalizedAngle()
         } else {
             pos = newPos
         }
@@ -93,48 +99,12 @@ class SmPos(var defPos: Float) : Cloneable {
         pos = lastPos - delta
     }
 
-    /** Changement de référentiel quelconques (avec positions et scales absolues). */
-    fun newReferential(pos: Float, destPos: Float,
-                       posScale: Float, destScale: Float) {
-        lastPos = (pos - destPos) / destScale
-        a = a * posScale / destScale
-        b = b * posScale / destScale
-    }
-    fun newReferentialAsDelta(posScale: Float, destScale: Float) {
-        lastPos = lastPos * posScale / destScale
-        a = a * posScale / destScale
-        b = b * posScale / destScale
-    }
-    /** Simple changement de référentiel vers le haut.
-     *  Se place dans le référentiel du grand-parent. */
-    fun referentialUp(oldParentPos: Float, oldParentScaling: Float) {
-        lastPos = lastPos * oldParentScaling + oldParentPos
-        a *= oldParentScaling
-        b *= oldParentScaling
-    }
-    fun referentialUpAsDelta(oldParentScaling: Float) {
-        lastPos *= oldParentScaling
-        a *= oldParentScaling
-        b *= oldParentScaling
-    }
-    /** Simple changement de référentiel vers le bas.
-     *  Se place dans le reférentiel d'un frère qui devient parent. */
-    fun referentialDown(newParentPos: Float, newParentScaling: Float) {
-        lastPos = (lastPos - newParentPos) / newParentScaling
-        a /= newParentScaling
-        b /= newParentScaling
-    }
-    fun referentialDownAsDelta(newParentScaling: Float) {
-        lastPos /= newParentScaling
-        a /= newParentScaling
-        b /= newParentScaling
-    }
-
     /*----------------------*/
     /*-- Private stuff... --*/
     private var lastPos: Float
     private var setTime: Int
     init {
+        defPos = defPos.toNormalizedAngle()
         lastPos = this.defPos
         setTime = GlobalChrono.elapsedMS32
     }
@@ -190,28 +160,10 @@ class SmPos(var defPos: Float) : Cloneable {
             }
         }
     }
-
-    private val elapsedSec: Float
-        get() = (GlobalChrono.elapsedMS32 - setTime).toFloat() * 0.001f
-
-    private enum class SmPosType {
-        Static, OscAmorti, AmortiCrit, SurAmorti
-    }
-
-    private var a: Float = 0.0f
-    private var b: Float = 0.0f
-    private var lambda: Float = 0.0f
-    private var beta: Float = 0.0f
-    private var type: SmPosType = SmPosType.Static
-
-    public override fun clone(): SmPos {
-        return super.clone() as SmPos
-    }
-}
-
-/*
+    /*
     private fun evalAB(newPos: Float) {
-        val deltaX = pos - newPos
+//        val deltaX = pos - newPos
+        val deltaX = pos - lastPos + normalizeAngle(lastPos - newPos)
         val xp = vit
         when (type) {
             SmPosType.OscAmorti -> {
@@ -232,3 +184,21 @@ class SmPos(var defPos: Float) : Cloneable {
         }
     }
     */
+
+    private val elapsedSec: Float
+        get() = (GlobalChrono.elapsedMS32 - setTime).toFloat() * 0.001f
+
+    private enum class SmPosType {
+        Static, OscAmorti, AmortiCrit, SurAmorti
+    }
+
+    private var a: Float = 0.0f
+    private var b: Float = 0.0f
+    private var lambda: Float = 0.0f
+    private var beta: Float = 0.0f
+    private var type: SmPosType = SmPosType.Static
+
+    public override fun clone(): SmPos {
+        return super.clone() as SmPos
+    }
+}

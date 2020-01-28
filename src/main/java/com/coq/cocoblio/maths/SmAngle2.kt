@@ -1,41 +1,47 @@
-@file:Suppress("unused", "MemberVisibilityCanBePrivate")
+@file:Suppress("MemberVisibilityCanBePrivate", "unused")
 
-package com.coq.cocoblio
+package com.coq.cocoblio.maths
 
+import com.coq.cocoblio.GlobalChrono
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-
-class SmAngle(var defPos: Float) : Cloneable {
+/** Angle "smooth" (évolue doucement dans le temps).
+ * SmAngle2 tient compte de la vitesse estimée lors du set.
+ * l'angle est entre -pi et pi (voir toNormalizedAngle). */
+class SmAngle2 : Cloneable {
     /** Vrai position (dernière entrée). Le setter FIXE la position. */
     var realPos: Float
         get() = lastPos
         set(newPos) {
             lastPos = newPos.toNormalizedAngle()
+            lastVit = 0f
             a = 0.0f; b = 0.0f
         }
 
     /** Position estimée au temps présent. Setter met à jour la "real" pos. et crée une nouvelle estimation. */
-    var pos: Float
+    val pos: Float
         get() {
             val deltaT = elapsedSec
             return when(type) {
                 SmPosType.OscAmorti ->
-                    exp(-lambda * deltaT) * (a * cos(beta * deltaT) + b * sin(beta * deltaT)) + lastPos
+                    exp(-lambda * deltaT) * (a * cos(beta * deltaT) + b * sin(beta * deltaT)) + lastPos + lastVit * deltaT
                 SmPosType.AmortiCrit ->
-                    (a + b * deltaT) * exp(-lambda * deltaT) + lastPos
+                    (a + b * deltaT) * exp(-lambda * deltaT) + lastPos + lastVit * deltaT
                 SmPosType.SurAmorti ->
-                    a * exp(-lambda * deltaT) + b * exp(-beta * deltaT) + lastPos
-                SmPosType.Static -> lastPos
+                    a * exp(-lambda * deltaT) + b * exp(-beta * deltaT) + lastPos + lastVit * deltaT
+                SmPosType.Static -> lastPos + lastVit * deltaT
             }
         }
-        set(newPos) {
-            evalAB((pos - newPos).toNormalizedAngle(), vit)
-            lastPos = newPos.toNormalizedAngle()
-            setTime = GlobalChrono.elapsedMS32
-        }
+
+    fun setPos(newPos: Float, newVit: Float) {
+        evalAB((pos - newPos).toNormalizedAngle(), vit - newVit)
+        lastPos = newPos.toNormalizedAngle()
+        lastVit = newVit
+        setTime = GlobalChrono.elapsedMS32
+    }
 
     /** Vitesse estimée au temps présent. */
     val vit: Float
@@ -44,66 +50,53 @@ class SmAngle(var defPos: Float) : Cloneable {
             return when(type) {
                 SmPosType.OscAmorti ->
                     exp(-lambda * deltaT) * ( cos(beta * deltaT) * (beta*b - lambda*a)
-                            - sin(beta * deltaT) * (lambda*b + beta*a) )
+                            - sin(beta * deltaT) * (lambda*b + beta*a) ) + lastVit
                 SmPosType.AmortiCrit ->
-                    exp(-lambda * deltaT) * (b*(1 - lambda*deltaT) - lambda*a)
+                    exp(-lambda * deltaT) * (b*(1 - lambda*deltaT) - lambda*a) + lastVit
                 SmPosType.SurAmorti ->
-                    -lambda * a * exp(-lambda * deltaT) - beta * b * exp(-beta * deltaT)
+                    -lambda * a * exp(-lambda * deltaT) - beta * b * exp(-beta * deltaT) + lastVit
                 SmPosType.Static ->
-                    0.0f
+                    lastVit
             }
         }
+
 
     fun updateLambda(lambda: Float) {
         updateConstants(2.0f * lambda, lambda * lambda)
     }
     fun updateConstants(gamma: Float, k: Float) {
         // 1. Enregistrer vit et deltaX avant de changer les constantes
-        val xp = vit
+        val deltaVit = vit - lastVit
         val deltaX = (pos - realPos).toNormalizedAngle()
         // 2. Changer les constantes lambda / beta.
         setConstants(gamma, k)
         // 3. Réévaluer a/b pour nouveau lambda/beta
-        evalAB(deltaX, xp)
+        evalAB(deltaX, deltaVit)
         // 4. Reset time
         setTime = GlobalChrono.elapsedMS32
     }
 
-    /** Se place à defPos (smooth). */
-    fun setToDef() {
-        pos = defPos
-    }
     /** Set avec options : fixer ou non, setter aussi la position par défaut ou non. */
-    fun setPos(newPos: Float, fix: Boolean, setDef: Boolean) {
+    fun setPos(newPos: Float, newVit: Float, fix: Boolean, setDef: Boolean) {
         if (setDef)
             defPos = newPos.toNormalizedAngle()
         if (fix) {
             realPos = newPos.toNormalizedAngle()
         } else {
-            pos = newPos
+            setPos(newPos, newVit)
         }
-    }
-    /** Se place à defPos + dec. */
-    fun setRelToDef(dec: Float) {
-        pos = defPos + dec
-    }
-    /** Se place à defPos + dec avec effet en arrivant par la "droite". */
-    fun fadeIn(delta: Float, dec: Float = 0f) {
-        realPos = defPos + dec + delta
-        pos = defPos + dec
-    }
-    /** Tasse l'objet en dehors... */
-    fun fadeOut(delta: Float) {
-        pos = lastPos - delta
     }
 
     /*----------------------*/
     /*-- Private stuff... --*/
+    private var defPos: Float
     private var lastPos: Float
+    private var lastVit: Float
     private var setTime: Int
-    init {
-        defPos = defPos.toNormalizedAngle()
+    constructor(posInit: Float) {
+        this.defPos = posInit.toNormalizedAngle()
         lastPos = this.defPos
+        lastVit = 0f
         setTime = GlobalChrono.elapsedMS32
     }
     constructor(posInit: Float, lambda: Float) : this(posInit) {
@@ -139,18 +132,18 @@ class SmAngle(var defPos: Float) : Cloneable {
         lambda = gamma / 2.0f
         beta = gamma / 2.0f
     }
-    private fun evalAB(deltaX: Float, xp: Float) {
+    private fun evalAB(deltaX: Float, deltaVit: Float) {
         when (type) {
             SmPosType.OscAmorti -> {
                 a = deltaX
-                b = (xp + lambda * a) / beta
+                b = (deltaVit + lambda * a) / beta
             }
             SmPosType.AmortiCrit -> {
                 a = deltaX
-                b = xp + lambda * a
+                b = deltaVit + lambda * a
             }
             SmPosType.SurAmorti -> {
-                a = (beta * deltaX + xp) / (beta - lambda)
+                a = (beta * deltaX + deltaVit) / (beta - lambda)
                 b = deltaX - a
             }
             SmPosType.Static -> {
@@ -158,30 +151,29 @@ class SmAngle(var defPos: Float) : Cloneable {
             }
         }
     }
-    /*
-    private fun evalAB(newPos: Float) {
+/*
+    private fun evalAB(newPos: Float, newVit: Float) {
 //        val deltaX = pos - newPos
         val deltaX = pos - lastPos + normalizeAngle(lastPos - newPos)
-        val xp = vit
+        val deltaVit = vit - newVit
         when (type) {
             SmPosType.OscAmorti -> {
                 a = deltaX
-                b = (xp + lambda * a) / beta
+                b = (deltaVit + lambda * a) / beta
             }
             SmPosType.AmortiCrit -> {
                 a = deltaX
-                b = xp + lambda * a
+                b = deltaVit + lambda * a
             }
             SmPosType.SurAmorti -> {
-                a = (beta * deltaX + xp) / (beta - lambda)
+                a = (beta * deltaX + deltaVit) / (beta - lambda)
                 b = deltaX - a
             }
             SmPosType.Static -> {
                 a = 0.0f; b = 0.0f
             }
         }
-    }
-    */
+    }*/
 
     private val elapsedSec: Float
         get() = (GlobalChrono.elapsedMS32 - setTime).toFloat() * 0.001f
