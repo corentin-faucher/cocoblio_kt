@@ -202,7 +202,7 @@ enum class Digits {
 
 /*-- Extension des Float --*/
 fun Float.toNormalizedAngle()
-        = this - floor((this + PI.toFloat()) / (2f * PI.toFloat())) * 2f * PI.toFloat()
+        = this - ceil((this - PI.toFloat()) / (2f * PI.toFloat())) * 2f * PI.toFloat()
 fun Float.testFunc() : Int {
     return 42
 }

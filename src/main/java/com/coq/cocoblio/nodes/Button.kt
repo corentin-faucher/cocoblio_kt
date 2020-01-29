@@ -87,3 +87,4 @@ abstract class SwitchButton(refNode: Node?, var isOn: Boolean,
         }
     }
 }
+
