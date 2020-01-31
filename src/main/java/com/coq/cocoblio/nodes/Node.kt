@@ -169,7 +169,6 @@ open class Node {
         if(big) { bigBro?.disconnect() ?: return false }
         else    { littleBro?.disconnect() ?: return false }
         return true
-
     }
 
     /*-- Déplacements --*/
@@ -390,73 +389,5 @@ open class Node {
     }
 }
 
-/*---------------------------------------*/
-/*-- Les interfaces / protocoles. -------*/
-/*---------------------------------------*/
-
-/** KeyboardKey peut être lié à un noeud-bouton ou simplement un event du clavier. */
-interface KeyboardKey {
-    val scancode: Int
-    val keycode: Int
-    val keymod: Int
-    val isVirtual: Boolean
-}
-/** Pour les noeuds "déplaçable".
- * 1. On prend le noeud : "grab",
- * 2. On le déplace : "drag",
- * 3. On le relâche : "letGo".
- * Retourne s'il y a une "action / event". */
-interface DraggableNode {
-    fun grab(posInit: Vector2) : Boolean
-    fun drag(posNow: Vector2, ge: GameEngineBase) : Boolean
-    fun letGo(speed: Vector2?) : Boolean
-}
-/** Pour les type de noeud devant être vérifié à l'ouverture. */
-interface OpenableNode {
-    fun open()
-}
-/** Pour les noeuds pouvant être "activés", typiquement les boutons. */
-interface ActionableNode {
-    fun action()
-}
-
-/*----------------------------------------------*/
-/*-- Les flags de base pour l'état d'un noeud.--*/
-/*----------------------------------------------*/
-
-/** Les flags "de base" pour les noeuds. */
-@Suppress("unused")
-object Flag1 {
-    const val show = 1L
-    /** Noeud qui n'apparait pas quand on "open" */
-    const val hidden = 2L
-    /** Noeud qui ne disparait pas quand on "close" */
-    const val exposed = 4L
-    const val selectableRoot = 1L.shl(4)
-    const val selectable = 1L.shl(5)
-    /** Noeud qui apparaît en grossisant. */
-    const val poping = 1L.shl(6)
-
-    /*-- Pour les surfaces --*/
-    /** Par défaut on ajuste la largeur pour respecter les proportion d'une image. */
-    const val surfaceDontRespectRatio = 1L.shl(8)
-    const val surfaceWithCeiledWidth = 1L.shl(9)
-
-    /*-- Pour les ajustement de height/width du parent ou du frame --*/
-    const val giveSizesToBigBroFrame = 1L.shl(10)
-    const val giveSizesToParent = 1L.shl(11)
-
-    /*-- Pour les screens --*/
-    /** Lors du reshape, le screen réaligne les "blocs" (premiers descendants).
-     * Par défaut on aligne, il faut préciser seulement si on ne veut PAS aligner. */
-    const val dontAlignScreenElements = 1L.shl(12)
-
-    /*-- Affichage de branche --*/
-    /** Paur l'affichage. La branche a encore des descendant à afficher. */
-    const val branchToDisplay = 1L.shl(13)
-
-    /** Le premier flag pouvant être utilisé dans un projet spécifique. */
-    const val firstCustomFlag = 1L.shl(14)
-}
 
 // fin de fichier

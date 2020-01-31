@@ -88,14 +88,12 @@ fun Node.addRootFlag(flag: Long) {
 }
 
 /**  Pour chaque noeud :
- * 1. Applique open pour les openable,
- * 2. exécute le lambda supplémentaire,
- * 3. ajoute "show" si non caché,
- * 4. visite si est une branche avec "show".
+ * 1. Applique open() pour les Openable,
+ * 2. ajoute "show" si non caché,
+ * 3. visite si est une branche avec "show".
  * (show peut avoir été ajouté exterieurement) */
-fun Node.openBranch(extraCheck: ((Node) -> Unit)? = null) {
-    (this as? OpenableNode)?.open()
-    extraCheck?.invoke(this)
+fun Node.openBranch() {
+    (this as? Openable)?.open()
     if (!containsAFlag(Flag1.hidden)) {
         addFlags(Flag1.show)
     }
@@ -104,8 +102,7 @@ fun Node.openBranch(extraCheck: ((Node) -> Unit)? = null) {
     }
     val sq = Squirrel(firstChild ?: return)
     while (true) {
-        (sq.pos as? OpenableNode)?.open()
-        extraCheck?.invoke(sq.pos)
+        (sq.pos as? Openable)?.open()
         if (!sq.pos.containsAFlag(Flag1.hidden)) {
             sq.pos.addFlags(Flag1.show)
         }
@@ -123,22 +120,50 @@ fun Node.openBranch(extraCheck: ((Node) -> Unit)? = null) {
 }
 
 /** Enlever "show" aux noeud de la branche (sauf les alwaysShow) et appliquer la "closure". */
-fun Node.closeBranch(extraCheck: ((Node) -> Unit)? = null) {
+fun Node.closeBranch() {
     if (!containsAFlag(Flag1.exposed)) {
         removeFlags(Flag1.show)
-        extraCheck?.invoke(this)
+        (this as? Closeable)?.close()
     }
     val sq = Squirrel(firstChild ?: return)
     while (true) {
         if (!sq.pos.containsAFlag(Flag1.exposed)) {
             sq.pos.removeFlags(Flag1.show)
-            extraCheck?.invoke(sq.pos)
+            (sq.pos as? Closeable)?.close()
         }
         if (sq.goDown()) {continue}
         while (!sq.goRight()) {
             if (!sq.goUp()) {
                 printerror("Pas de this."); return
             } else if (sq.pos === this) {return}
+        }
+    }
+}
+
+fun Node.reshapeBranch() {
+    if (!containsAFlag(Flag1.show)) {
+        return
+    }
+    var reshapeChildren: Boolean = (this as? Reshapable)?.reshape() ?: false
+    if (!containsAFlag(Flag1.reshapableRoot) || !reshapeChildren) {
+        return
+    }
+    val sq = Squirrel(firstChild ?: return)
+    while (true) {
+        if (sq.pos.containsAFlag(Flag1.show)) {
+            reshapeChildren = (sq.pos as? Reshapable)?.reshape() ?: false
+            if (sq.pos.containsAFlag(Flag1.reshapableRoot) && reshapeChildren) {
+                if (sq.goDown()) {
+                    continue
+                }
+            }
+        }
+        while (!sq.goRight()) {
+            if (!sq.goUp()) {
+                printerror("Pas de root."); return
+            } else if (sq.pos === this) {
+                return
+            }
         }
     }
 }

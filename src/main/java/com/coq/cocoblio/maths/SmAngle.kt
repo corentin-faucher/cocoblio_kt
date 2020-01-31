@@ -91,6 +91,7 @@ class SmAngle(var defPos: Float) : Cloneable {
     }
     /** Se place à defPos + dec avec effet en arrivant par la "droite". */
     fun fadeIn(delta: Float, dec: Float = 0f) {
+        println("TODO: Obsolete.")
         realPos = defPos + dec + delta
         pos = defPos + dec
     }

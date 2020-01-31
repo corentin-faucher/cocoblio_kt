@@ -5,7 +5,11 @@ package com.coq.cocoblio.maths
 import com.coq.cocoblio.GlobalChrono
 import kotlin.math.*
 
-/** Position "smooth" (évolue doucement dans le temps). */
+/** Position "smooth" (évolue doucement dans le temps).
+ * defPos est une mémoire de l'emplacement par défaut et/ou
+ * de l'emplacement relatif au parent
+ * (e.g. position par rapport au côté droit du cadre du parent).
+ * */
 class SmPos(var defPos: Float) : Cloneable {
     /** Vrai position (dernière entrée). Le setter FIXE la position. */
     var realPos: Float
@@ -85,14 +89,15 @@ class SmPos(var defPos: Float) : Cloneable {
     fun setRelToDef(dec: Float) {
         pos = defPos + dec
     }
-    /** Se place à defPos + dec avec effet en arrivant par la "droite". */
-    fun fadeIn(delta: Float, dec: Float = 0f) {
-        realPos = defPos + dec + delta
-        pos = defPos + dec
+    /** Se place à realPos + delta puis se remet où on était.
+     * (Donne l'effet d'arriver par la "droite" (si pos en x)). */
+    fun fadeIn(delta: Float? = null) {
+        realPos = defPos + (delta ?: defaultFadeDelta)
+        pos = defPos
     }
     /** Tasse l'objet en dehors... */
-    fun fadeOut(delta: Float) {
-        pos = lastPos - delta
+    fun fadeOut(delta: Float? = null) {
+        pos = lastPos - (delta ?: defaultFadeDelta)
     }
 
     /** Changement de référentiel quelconques (avec positions et scales absolues). */
@@ -134,7 +139,7 @@ class SmPos(var defPos: Float) : Cloneable {
 
     /*----------------------*/
     /*-- Private stuff... --*/
-    private var lastPos: Float
+    private var lastPos: Float // Dernière position entrée (vrai realPos...).
     private var setTime: Int
     init {
         lastPos = this.defPos
@@ -208,6 +213,9 @@ class SmPos(var defPos: Float) : Cloneable {
 
     public override fun clone(): SmPos {
         return super.clone() as SmPos
+    }
+    companion object {
+        var defaultFadeDelta = 2.2f
     }
 }
 

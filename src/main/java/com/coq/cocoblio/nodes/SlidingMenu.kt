@@ -17,12 +17,11 @@ import kotlin.math.*
  * getPosIndex : la position de l'indice où on est centré à l'ouverture. */
 class SlidingMenu(refNode: Node, private val nDisplayed: Int,
                   x: Float, y: Float, width: Float, height: Float, private val spacing: Float,
-                  val addNewItem: ((menu: Node, index: Int) -> Node),
+                  val addNewItem: ((menu: Node, index: Int) -> Unit),
                   val getIndicesRangeAtOpening: (() -> IntRange),
-                  val getPosIndex: (() -> Int),
-                  private val openExtraCheck: ((Node) -> Unit)?,
-                  private val closeExtraCheck: ((Node) -> Unit)?
-) : Node(refNode, x, y, width, height, 10f, Flag1.selectable), DraggableNode, OpenableNode {
+                  val getPosIndex: (() -> Int)
+) : SearchableNode(refNode, Flag1.selectableRoot, Flag1.selectable,
+    x, y, width, height, 10f, Flag1.selectable), Draggable, Openable {
     private var menuGrabPosY: Float? = null
     private var indicesRange: IntRange = IntRange.EMPTY
     private val menu: Node // Le menu qui "glisse" sur le noeud racine.
@@ -95,7 +94,7 @@ class SlidingMenu(refNode: Node, private val nDisplayed: Int,
         return false
     }
     /** Scrooling vertical de menu. (déplacement en cours, a besoin d'un letGoWith) */
-    override fun drag(posNow: Vector2, ge: GameEngineBase) : Boolean {
+    override fun drag(posNow: Vector2) : Boolean {
         menuGrabPosY?.let {
             setMenuYpos(posNow.y - it, snap = false, fix = false)
         } ?: printerror("drag pas init.")
@@ -164,13 +163,13 @@ class SlidingMenu(refNode: Node, private val nDisplayed: Int,
             if (toShow && sq.pos.containsAFlag(Flag1.hidden)) {
                 sq.pos.removeFlags(Flag1.hidden)
                 if(openNode) {
-                    sq.pos.openBranch(openExtraCheck)
+                    sq.pos.openBranch()
                 }
             }
             if (!toShow && !sq.pos.containsAFlag(Flag1.hidden)) {
                 sq.pos.addFlags(Flag1.hidden)
                 if(openNode) {
-                    sq.pos.closeBranch(closeExtraCheck)
+                    sq.pos.closeBranch()
                 }
             }
         } while (sq.goRight())

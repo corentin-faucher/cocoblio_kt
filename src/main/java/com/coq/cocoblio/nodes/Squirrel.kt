@@ -234,7 +234,7 @@ class Squirrel(pos_: Node) {
         return true
     }
 
-    /** Déplacement particulier pour l'affichage. */
+    /** Cas particulier de déplacement pour l'affichage. */
     fun goToNextToDisplay() : Boolean {
         // 1. Aller en profondeur, pause si branche à afficher.
         if (pos.firstChild != null && pos.containsAFlag(Flag1.show or Flag1.branchToDisplay)) {
@@ -252,5 +252,6 @@ class Squirrel(pos_: Node) {
         } while (goUp())
         return false
     }
+
 }
 

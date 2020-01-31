@@ -81,9 +81,10 @@ open class Surface : Node {
             if (containsAFlag(Flag1.surfaceWithCeiledWidth)) {
                 width.setPos(
                     min(height.realPos * tex.ratio, width.defPos),
-                    true, false)
+                    fix = true, setDef = false)
             } else {
-                width.setPos(height.realPos * tex.ratio, true, true)
+                width.setPos(height.realPos * tex.ratio,
+                    fix = true, setDef = true)
             }
         }
         (bigBro as? Frame)?.let { frame ->
@@ -100,7 +101,7 @@ open class Surface : Node {
 }
 
 /** LanguageSurface : cas particulier de Surface. La tile est fonction de la langue. */
-open class LanguageSurface : Surface, OpenableNode {
+open class LanguageSurface : Surface, Openable {
     override fun open() {
         updateTile(Language.currentLanguageID, 0)
     }
@@ -126,7 +127,8 @@ open class LanguageSurface : Surface, OpenableNode {
 class CstStrSurf: Surface {
     constructor(refNode: Node?, string: String,
                 x: Float, y: Float, height: Float, lambda: Float = 0f,
-                flags: Long = 0, ceiledWidth: Float? = null, asParent: Boolean = true, asElderBigbro: Boolean = false
+                flags: Long = 0, ceiledWidth: Float? = null,
+                asParent: Boolean = true, asElderBigbro: Boolean = false
     ) : super(refNode, Texture.getConstantStringTex(string),
         x, y, height,  lambda, 0, flags, ceiledWidth, asParent, asElderBigbro) {
         piu.color = floatArrayOf(0f, 0f, 0f, 1f)  // (Text noir par défaut.)
@@ -147,15 +149,17 @@ class CstStrSurf: Surface {
 
 /** Surface d'une string localisable.
  * (ne garde en mémoire ni la string ni la locStrID) */
-class LocStrSurf : Surface, OpenableNode {
+class LocStrSurf : Surface, Openable {
     override fun open() {
         updateRatio()
     }
     constructor(refNode: Node, resStrID: Int,
                 x: Float, y: Float, height: Float, lambda: Float = 0f,
-                flags: Long = 0, ceiledWidth: Float? = null, asParent: Boolean = true, asElderBigbro: Boolean = false
+                flags: Long = 0, ceiledWidth: Float? = null,
+                asParent: Boolean = true, asElderBigbro: Boolean = false
     ) : super(refNode, Texture.getLocalizedStringTex(resStrID),
-        x, y, height, lambda, 0, flags, ceiledWidth, asParent, asElderBigbro) {
+        x, y, height, lambda, 0, flags,
+        ceiledWidth, asParent, asElderBigbro) {
         piu.color = floatArrayOf(0f, 0f, 0f, 1f)
     }
     /** Changement d'une string localisée. */
@@ -171,16 +175,26 @@ class LocStrSurf : Surface, OpenableNode {
 }
 
 /** Surface d'une string editable. */
-class EdtStrSurf : Surface, OpenableNode {
-    override fun open() {
-        updateRatio()
-    }
+class EdtStrSurf : Surface, Openable {
     constructor(refNode: Node, id: Int,
                 x: Float, y: Float, height: Float, lambda: Float = 0f,
-                flags: Long = 0, ceiledWidth: Float? = null, asParent: Boolean = true, asElderBigbro: Boolean = false
+                flags: Long = 0, ceiledWidth: Float? = null,
+                asParent: Boolean = true, asElderBigbro: Boolean = false
     ) : super(refNode, Texture.getEditableStringTex(id),
         x, y, height, lambda, 0, flags, ceiledWidth, asParent, asElderBigbro) {
         piu.color = floatArrayOf(0f, 0f, 0f, 1f)
+    }
+    constructor(refNode: Node, id: Int, string: String,
+                x: Float, y: Float, height: Float, lambda: Float = 0f,
+                flags: Long = 0, ceiledWidth: Float? = null,
+                asParent: Boolean = true, asElderBigbro: Boolean = false
+    ) : this(refNode, id, x, y, height, lambda, flags, ceiledWidth, asParent, asElderBigbro) {
+        piu.color = floatArrayOf(0f, 0f, 0f, 1f)
+        Texture.setEditableString(id, string)
+    }
+
+    override fun open() {
+        updateRatio()
     }
     /** Changement pour une autre string editable */
     fun updateForEdtStr(id: Int) {
@@ -191,14 +205,6 @@ class EdtStrSurf : Surface, OpenableNode {
         updateRatio()
     }
 
-    constructor(refNode: Node, id: Int, string: String,
-                x: Float, y: Float, height: Float, lambda: Float = 0f,
-                flags: Long = 0, ceiledWidth: Float? = null, asParent: Boolean = true, asElderBigbro: Boolean = false
-    ) : this(refNode, id, x, y, height, lambda, flags, ceiledWidth, asParent, asElderBigbro) {
-        piu.color = floatArrayOf(0f, 0f, 0f, 1f)
-        Texture.setEditableString(id, string)
-        updateRatio()
-    }
 
     override  fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
             = EdtStrSurf(refNode, this, asParent, asElderBigbro)

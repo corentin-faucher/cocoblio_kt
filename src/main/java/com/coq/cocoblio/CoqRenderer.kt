@@ -4,10 +4,7 @@ package com.coq.cocoblio
 
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
-import com.coq.cocoblio.maths.SmPos
-import com.coq.cocoblio.maths.Vector2
-import com.coq.cocoblio.maths.getPerspective
-import com.coq.cocoblio.maths.printerror
+import com.coq.cocoblio.maths.*
 import com.coq.cocoblio.nodes.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
@@ -50,8 +47,15 @@ class CoqRenderer(private val coqActivity: CoqActivity,
             const val isOneSided: Int = 1
         }
     }
-    
-    private var ge: GameEngineBase? = null
+
+    /*-- ??? Peut-on le mettre dans Activity ??? --*/
+    // Le gestionnaire/contrôleur des actions
+//    private var ge: GameEngineBase? = null
+    private var eh: EventsHandler? = null
+    private var root: Node? = null
+
+    /*---------------------*/
+    /*-- Stuff OpenGL... --*/
     // ID des variable de shaders...
     private var programID: Int = -1
     // ID des "per frame uniforms"
@@ -63,40 +67,40 @@ class CoqRenderer(private val coqActivity: CoqActivity,
     private var piuColorID: Int = -1
     private var piuEmphID: Int = -1
     private var piuFlagsID: Int = -1
-//    private var pos = Vector2()
 
+    /*-- Gestion des events (de Activity) --*/
     fun onKeyDown(key: KeyboardKey) {
-        ge?.keyDown(key)
+        eh?.keyDown(key)
     }
     fun onKeyUp(key: KeyboardKey) {
-        ge?.keyUp(key)
+        eh?.keyUp(key)
     }
 
     fun onConfigurationChanged() {
-        ge?.configurationChanged()
+        eh?.configurationChanged()
     }
 
     fun onTouchUp(vit: Vector2?) {
 //        println("onTouchUp $vit")
-        ge?.letTouchDrag(vit)
+        eh?.letTouchDrag(vit)
         touchDragStarted = false
     }
     private var touchDragStarted = false
     fun onTouchDrag(posInit: Vector2, posNow: Vector2) {
 //        println("onTouchDrag $posInit, $posNow")
         if(!touchDragStarted) {
-            ge?.initTouchDrag(posInit)
+            eh?.initTouchDrag(posInit)
             touchDragStarted = true
         }
-        ge?.touchDrag(posNow)
+        eh?.touchDrag(posNow)
     }
     fun onSingleTap(pos: Vector2) {
 //        println("onSingleTap $pos")
-        ge?.singleTap(pos)
+        eh?.singleTap(pos)
         touchDragStarted = false
     }
     fun onPause() {
-        ge?.appPaused()
+        eh?.appPaused()
     }
 
 
@@ -127,9 +131,9 @@ class CoqRenderer(private val coqActivity: CoqActivity,
         }
         GLES20.glUniform1f(pfuTimeID, shadersTime.elsapsedSec)
         // 4. Action falcultative du gameEngine avec frameFullWidth à jour.
-        ge?.everyFrameAction()
+        eh?.onDrawFrame()
         // 5. Dessiner les noeuds
-        val sq = Squirrel(ge?.root ?: run { printerror("GE pas init."); return})
+        val sq = Squirrel(root ?: run { printerror("Rien à afficher."); return})
         do {
             sq.pos.setNodeForDrawing()?.draw()
         } while (sq.goToNextToDisplay())
@@ -139,21 +143,22 @@ class CoqRenderer(private val coqActivity: CoqActivity,
         height = newHeight.toFloat()
         width = newWidth.toFloat()
         val ratio = width / height
+        println("onSurfaceChanged portrait: ${portrait}")
+        portrait = ratio < 1f
 
-        if (width > height) { // Landscape
+        if (portrait) {
+            widthRatio.pos = bordRatio
+            heightRatio.pos = bordRatio * min(1f, ratio / usableRatioMin)
+            frameUsableWidth = 2f
+            frameUsableHeight = 2f * (heightRatio.realPos / widthRatio.realPos) / ratio
+        } else {
             heightRatio.pos = bordRatio
             widthRatio.pos = bordRatio * min(1f, usableRatioMax / ratio)
             frameUsableHeight = 2f
             frameUsableWidth = 2f * ratio * (widthRatio.realPos / heightRatio.realPos)
-        } else {
-            widthRatio.pos = bordRatio
-            heightRatio.pos = bordRatio * min(1f, ratio / usableRatioMin)
-
-            frameUsableWidth = 2f
-            frameUsableHeight = 2f * (heightRatio.realPos / widthRatio.realPos) / ratio
         }
-
-        ge?.reshapeAction()
+        println("calling viewReshape")
+        eh?.viewReshaped()
     }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         fun loadShader(type: Int, shaderResource: Int) : Int {
@@ -197,10 +202,12 @@ class CoqRenderer(private val coqActivity: CoqActivity,
         // 5. Init du temps des shaders.
         shadersTime.start()
 
-        // 6. Init du game engine
-        if (ge == null) {
-            ge = coqActivity.getGameEngine()
-            gameEngineCount += 1
+        // 6. Init de la structure/eventsHandler (i.e. gameengine)
+        if (eh == null) {
+            eh = coqActivity.getEventstHandler()
+        }
+        if (root == null) {
+            root = coqActivity.getStructureRoot()
         }
     }
     /** Dessiner une surface */
@@ -244,6 +251,8 @@ class CoqRenderer(private val coqActivity: CoqActivity,
 
         var setNodeForDrawing : (Node.() -> Surface?) = Node::defaultSetNodeForDrawing
         // Dimensions de la vue (global access)
+        var portrait: Boolean = false
+            private set
         var width: Float = 1.0f // En pixels
             private set
         var height: Float = 1.0f
@@ -272,248 +281,49 @@ class CoqRenderer(private val coqActivity: CoqActivity,
     }
 }
 
-/*
- Dessiner une surface avec ses infos (uniforms, texture, mesh).
-    private fun draw(piu: PerInstanceUniforms, tex: Texture, mesh: Mesh) {
-        // 1. Mise a jour de la mesh ?
-        if (mesh !== Mesh.currentMesh) {
-            Mesh.setMesh(mesh)
-        }
-        // 2. Mise a jour de la texture ?
-        if (tex !== Texture.currentTexture) {
-            Texture.setTexture(tex)
-        }
-        // 3. Mise à jour des "PerInstanceUniforms"
-        GLES20.glUniformMatrix4fv(
-            piuModelID, 1, false,
-            piu.model, 0)
-        GLES20.glUniform2f(piuTexIJID, piu.i, piu.j)
-        GLES20.glUniform4fv(piuColorID, 1, piu.color, 0)
-        GLES20.glUniform1f(piuEmphID, piu.emph)
-        GLES20.glUniform1i(piuFlagsID, piu.flags)
-        // 4. Dessiner
-        if (mesh.indexCount > 0) {
-            GLES20.glDrawElements(Mesh.currentPrimitiveType,
-                mesh.indexCount, GLES20.GL_UNSIGNED_INT, 0)
-        } else {
-            GLES20.glDrawArrays(Mesh.currentPrimitiveType, 0, Mesh.currentVertexCount)
-        }
-    }
-open class SetNodeForDrawingDefault: ((Node) -> Surface?) {
-            override fun invoke(node: Node) : Surface? {
-                // 1. Init de la matrice model avec le parent.
-                node.parent?.let {
-                    System.arraycopy(it.piu.model, 0, node.piu.model, 0, 16)
-                } ?: run {
-                    // Cas racine -> model est la caméra.
-                    node.piu.model = getLookAt(
-                        Vector3(0f, 0f, smCameraZ.pos),
-                        Vector3(0f, 0f, 0f),
-                        Vector3(0f, 1f, 0f)
-                    )
-                }
-
-                // 2. Cas branche
-                if (node.firstChild != null) {
-                    node.piu.model.translate(node.x.pos, node.y.pos, 0f)
-                    node.piu.model.scale(node.scaleX.pos, node.scaleY.pos, 1f)
-                    node.piu.model.rotateZ(node.z.pos)
-                    return null
-                }
-
-                // 3. Cas feuille
-                // Laisser faire si n'est pas affichable...
-                if (node !is Surface) {return null}
-
-                // Facteur d'"affichage"
-                val alpha = node.trShow.setAndGet(node.containsAFlag(Flag1.show))
-                node.piu.color[3] = alpha
-                // Rien à afficher...
-                if (alpha == 0f) { return null }
-                node.piu.model.translate(node.x.pos, node.y.pos, 0f)
-                if (node.containsAFlag(Flag1.poping)) {
-                    node.piu.model.scale(node.width.pos * alpha, node.height.pos * alpha, 1f)
-                } else {
-                    node.piu.model.scale(node.width.pos, node.height.pos, 1f)
-                }
-
-                if(node.mesh === Mesh.fan) {
-                    Mesh.setFan(0.5f + 0.5f*sin(GlobalChrono.elapsedSec))
-                }
-
-                return node
-            }
-        }
-
-@Suppress("unused")
-object ViewManager {
-    /** Dessiner une surface avec ses infos (uniforms, texture, mesh). */
-    fun draw(piu: PerInstanceUniforms, tex: Texture, mesh: Mesh) {
-        // 1. Mise a jour de la mesh ?
-        if (mesh !== Mesh.currentMesh) {
-            Mesh.setMesh(mesh)
-        }
-        // 2. Mise a jour de la texture ?
-        if (tex !== Texture.currentTexture) {
-            Texture.setTexture(tex)
-        }
-        // 3. Mise à jour des "PerInstanceUniforms"
-        GLES20.glUniformMatrix4fv(
-            piuModelID, 1, false,
-            piu.model, 0)
-        GLES20.glUniform2f(piuTexIJID, piu.i, piu.j)
-        GLES20.glUniform4fv(piuColorID, 1, piu.color, 0)
-        GLES20.glUniform1f(piuEmphID, piu.emph)
-        GLES20.glUniform1i(piuFlagsID, piu.flags)
-        // 4. Dessiner
-        if (mesh.indexCount > 0) {
-            GLES20.glDrawElements(Mesh.currentPrimitiveType,
-                mesh.indexCount, GLES20.GL_UNSIGNED_INT, 0)
-        } else {
-            GLES20.glDrawArrays(Mesh.currentPrimitiveType, 0, Mesh.currentVertexCount)
-        }
+/** La fonction utilisé par défaut pour CoqRenderer.setNodeForDrawing.
+ * Retourne la surface à afficher (le noeud présent si c'est une surface). */
+private fun Node.defaultSetNodeForDrawing() : Surface? {
+    // 1. Init de la matrice model avec le parent.
+    parent?.let {
+        System.arraycopy(it.piu.model, 0, piu.model, 0, 16)
+    } ?: run {
+        // Cas racine -> model est la caméra.
+        piu.model = getLookAt(
+            Vector3(0f, 0f, CoqRenderer.smCameraZ.pos),
+            Vector3(0f, 0f, 0f),
+            Vector3(0f, 1f, 0f)
+        )
     }
 
-    fun initClearColor(r: Float, g: Float, b: Float) {
-        smR.realPos = r; smG.realPos = g; smB.realPos = b
+    // 2. Cas branche
+    if (firstChild != null) {
+        piu.model.translate(x.pos, y.pos, z.pos)
+        piu.model.scale(scaleX.pos, scaleY.pos, 1f)
+        return null
     }
 
-    fun updateClearColor(r: Float, g: Float, b: Float) {
-        smR.pos = r; smG.pos = g; smB.pos = b
+    // 3. Cas feuille
+    // Laisser faire si n'est pas affichable...
+    if (this !is Surface) {return null}
+
+    // Facteur d'"affichage"
+    val alpha = trShow.setAndGet(containsAFlag(Flag1.show))
+    piu.color[3] = alpha
+    // Rien à afficher...
+    if (alpha == 0f) { return null }
+
+    piu.model.translate(x.pos, y.pos, z.pos)
+    if (containsAFlag(Flag1.poping)) {
+        piu.model.scale(width.pos * alpha, height.pos * alpha, 1f)
+    } else {
+        piu.model.scale(width.pos, height.pos, 1f)
     }
 
-    fun reshape(newWidth: Int, newHeight: Int, widthUsedRatio: Float, heightUsedRatio: Float) {
-        GLES20.glViewport(0, 0, newWidth, newHeight)
-
-        height = newHeight.toFloat()
-        width = newWidth.toFloat()
-        smoothRatioWidth.pos = max(0.5f, min(1f, widthUsedRatio))
-        smoothRatioHeight.pos = max(0.5f, min(1f, heightUsedRatio))
-
-        if (width > height) { // Landscape
-            frameUsableWidth = 2f * width / height *
-                    (smoothRatioWidth.realPos / smoothRatioHeight.realPos)
-            frameUsableHeight = 2f
-        } else {
-            frameUsableWidth = 2f
-            frameUsableHeight = 2f * height / width *
-                    (smoothRatioHeight.realPos / smoothRatioWidth.realPos)
-        }
+    if(mesh === Mesh.defaultFan) {
+        mesh.updateAsAFanWith(0.5f + 0.5f*sin(CoqRenderer.shadersTime.elsapsedSec))
     }
 
-    /** Mise à jour de la matrice de projection et du temps des shaders. */
-    fun setPerFrameUniforms() {
-        // 1. Mise à jour de la couleur de fond.
-        GLES20.glClearColor(smR.pos, smG.pos, smB.pos, 1.0f)
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-        // 2. Mise à jour de la matrice de projection
-        if (width > height) { // Landscape
-            frameFullHeight = 2f / smoothRatioHeight.pos
-            frameFullWidth = width / height * frameFullHeight
-        } else {
-            frameFullWidth = 2f / smoothRatioWidth.pos
-            frameFullHeight = height / width * frameFullWidth
-        }
-        val projection = getPerspective(
-            0.1f, 50f, smCameraZ.pos,
-            frameFullWidth, frameFullHeight)
-        GLES20.glUniformMatrix4fv(
-            pfuProjectionID, 1,
-            false, projection, 0)
-
-        // 3. Mise à jour du temps des shaders
-        if (shadersTime.elsapsedSec > 24f) {
-            shadersTime.removeSec(24f)
-        }
-        GLES20.glUniform1f(pfuTimeID, shadersTime.elsapsedSec)
-    }
-
-    fun getPositionFrom(locationInWindowX: Float, locationInWindowY: Float,
-                        invertedY: Boolean) = Vector2(
-        (locationInWindowX / width - 0.5f) * frameFullWidth,
-        (if (invertedY) -1f else 1f) * (locationInWindowY / height - 0.5f) * frameFullHeight
-    )
-
-    var width: Float = 1.0f // En pixels
-        private set
-    var height: Float = 1.0f
-        private set
-    var frameUsableWidth = 2f
-        private set
-    var frameUsableHeight = 2f
-        private set
-    var frameFullWidth = 2f
-        private set
-    var frameFullHeight = 2f
-        private set
-    /** La position en z de la camera (libre d'accès) */
-    var smCameraZ = SmPos(2f, 5f)
-    private var smR = SmPos(0f, 8f)
-    private var smG = SmPos(0f, 8f)
-    private var smB = SmPos(0f, 8f)
-    private var smoothRatioWidth = SmPos(1f, 8f)
-    private var smoothRatioHeight = SmPos(1f, 8f)
-    private val shadersTime = Chrono()
-
-    /** Init d'OpenGL */
-    fun initOpenGL(context: Context, customVertShadResID: Int?, customFragShadResID: Int?) {
-        fun loadShader(type: Int, shaderResource: Int) : Int {
-            val inputStream = context.resources.openRawResource(shaderResource)
-            val shaderCode = inputStream.bufferedReader().use { it.readText() }
-            return GLES20.glCreateShader(type).also { shader ->
-                GLES20.glShaderSource(shader, shaderCode)
-                GLES20.glCompileShader(shader)
-                print(GLES20.glGetShaderInfoLog(shader))
-            }
-        }
-
-        // 1. Création du program.
-        val vertexShader: Int = loadShader(GLES20.GL_VERTEX_SHADER,
-            customVertShadResID ?: R.raw.shadervert)
-        val fragmentShader: Int = loadShader(GLES20.GL_FRAGMENT_SHADER,
-            customFragShadResID ?: R.raw.shaderfrag)
-        programID = GLES20.glCreateProgram().also {
-            GLES20.glAttachShader(it, vertexShader)
-            GLES20.glAttachShader(it, fragmentShader)
-            GLES20.glLinkProgram(it)
-            GLES20.glUseProgram(it)
-        }
-        GLES20.glEnable(GLES20.GL_BLEND)
-        GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
-//        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
-
-        // 2. Obtenir les ID OpenGL des variables des shaders.
-        pfuProjectionID = GLES20.glGetUniformLocation(programID, "projection")
-        pfuTimeID =  GLES20.glGetUniformLocation(programID, "time")
-        piuModelID = GLES20.glGetUniformLocation(programID, "model")
-        piuTexIJID = GLES20.glGetUniformLocation(programID, "texIJ")
-        piuColorID = GLES20.glGetUniformLocation(programID, "color")
-        piuEmphID  = GLES20.glGetUniformLocation(programID, "emph")
-        piuFlagsID = GLES20.glGetUniformLocation(programID, "flags")
-
-
-        // 3. Init des surface de textures
-        Texture.initTextures(programID, context)
-
-        // 4. Init des meshes et vertex attributes.
-        Mesh.initMeshes(programID)
-
-        // 5. Init du temps des shaders.
-        shadersTime.start()
-    }
-    fun suspendOpenGL() {
-    }
-
-    // ID des variable de shaders...
-    private var programID: Int = -1
-
-    private var pfuProjectionID: Int = -1
-    private var pfuTimeID: Int = -1
-
-    private var piuModelID: Int = -1
-    private var piuTexIJID: Int = -1
-    private var piuColorID: Int = -1
-    private var piuEmphID: Int = -1
-    private var piuFlagsID: Int = -1
+    return this
 }
- */
+

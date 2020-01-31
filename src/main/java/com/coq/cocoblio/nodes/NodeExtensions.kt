@@ -4,7 +4,6 @@ import com.coq.cocoblio.*
 import com.coq.cocoblio.maths.*
 import com.coq.cocoblio.nodes.Node.Companion.showFrame
 import kotlin.math.abs
-import kotlin.math.sin
 
 /*---------------------------------------*/
 /*-- Quelques extensions utiles. --------*/
@@ -24,8 +23,7 @@ fun <T: Node> T.alsoAddLocStrWithFrame(id: Int, frameResID: Int = R.drawable.fra
     width.setPos(1f)
     height.setPos(1f)
     Frame(this, false, delta,
-        0f, frameResID, Flag1.giveSizesToParent
-    )
+        0f, frameResID, Flag1.giveSizesToParent)
     LocStrSurf(this, id, 0f, 0f, 1f,
         0f, Flag1.giveSizesToBigBroFrame, scaleCeiledWidth)
     return this
@@ -41,11 +39,9 @@ fun <T: Node> T.alsoAddCstStrWithFrame(str: String, frameResID: Int = R.drawable
     height.setPos(1f)
 
     Frame(this, false, delta,
-        0f, frameResID, Flag1.giveSizesToParent
-    )
+        0f, frameResID, Flag1.giveSizesToParent)
     CstStrSurf(this, str, 0f, 0f, 1f,
-        0f, Flag1.giveSizesToBigBroFrame
-    )
+        0f, Flag1.giveSizesToBigBroFrame)
     return this
 }
 
@@ -61,11 +57,9 @@ fun <T: Node> T.alsoAddEdtStrWithFrame(id: Int, frameResID: Int = R.drawable.fra
     height.setPos(1f)
 
     Frame(this, false, delta,
-        0f, frameResID, Flag1.giveSizesToParent
-    )
+        0f, frameResID, Flag1.giveSizesToParent)
     EdtStrSurf(this, id, 0f, 0f, 1f,
-        0f, Flag1.giveSizesToBigBroFrame
-    )
+        0f, Flag1.giveSizesToBigBroFrame)
     return this
 }
 
@@ -73,7 +67,6 @@ fun <T: Node> T.alsoAddEdtStrWithFrame(id: Int, frameResID: Int = R.drawable.fra
  * Ajout d'une surface "frame" pour visualiser la taille d'un "bloc".
  * L'option Node.showFrame doit être "true". */
 fun Node.tryToAddFrame() {
-    @Suppress("ConstantConditionIf")
     if (!showFrame) return
     Surface(this, R.drawable.test_frame, 0f, 0f, height.realPos,
         0f, 0, Flag1.surfaceDontRespectRatio
@@ -190,50 +183,4 @@ fun Node.adjustWidthAndHeightFromChildren() {
     } while (sq.goRightWithout(Flag1.hidden))
     width.setPos(w)
     height.setPos(h)
-}
-
-/** La fonction utilisé par défaut pour CoqRenderer.setNodeForDrawing.
- * Retourne la surface à afficher (le noeud présent si c'est une surface). */
-fun Node.defaultSetNodeForDrawing() : Surface? {
-    // 1. Init de la matrice model avec le parent.
-    parent?.let {
-        System.arraycopy(it.piu.model, 0, piu.model, 0, 16)
-    } ?: run {
-        // Cas racine -> model est la caméra.
-        piu.model = getLookAt(
-            Vector3(0f, 0f, CoqRenderer.smCameraZ.pos),
-            Vector3(0f, 0f, 0f),
-            Vector3(0f, 1f, 0f)
-        )
-    }
-
-    // 2. Cas branche
-    if (firstChild != null) {
-        piu.model.translate(x.pos, y.pos, z.pos)
-        piu.model.scale(scaleX.pos, scaleY.pos, 1f)
-        return null
-    }
-
-    // 3. Cas feuille
-    // Laisser faire si n'est pas affichable...
-    if (this !is Surface) {return null}
-
-    // Facteur d'"affichage"
-    val alpha = trShow.setAndGet(containsAFlag(Flag1.show))
-    piu.color[3] = alpha
-    // Rien à afficher...
-    if (alpha == 0f) { return null }
-
-    piu.model.translate(x.pos, y.pos, z.pos)
-    if (containsAFlag(Flag1.poping)) {
-        piu.model.scale(width.pos * alpha, height.pos * alpha, 1f)
-    } else {
-        piu.model.scale(width.pos, height.pos, 1f)
-    }
-
-    if(mesh === Mesh.defaultFan) {
-        mesh.updateAsAFanWith(0.5f + 0.5f*sin(CoqRenderer.shadersTime.elsapsedSec))
-    }
-
-    return this
 }
