@@ -46,57 +46,57 @@ class Frame : Node {
         val smallHeight = if(isInside) max(height - delta, 0f) else height
 
         // Mise à jour des dimensions.
-        this.width.setPos(smallWidth + 2f * delta)
-        this.height.setPos(smallHeight + 2f * delta)
+        this.width.set(smallWidth + 2f * delta)
+        this.height.set(smallHeight + 2f * delta)
         parent?.let{ parent ->
             if (containsAFlag(Flag1.giveSizesToParent)) {
-                parent.width.setPos(this.width.realPos)
-                parent.height.setPos(this.height.realPos)
+                parent.width.set(this.width.realPos)
+                parent.height.set(this.height.realPos)
             }
         }
         run {
             sq.goDownForced(refSurf) // tl
             (sq.pos as? Surface)?.updateTile(0, 0)
-            sq.pos.x.setPos(-deltaX, fix, true)
-            sq.pos.y.setPos(deltaY, fix, true)
+            sq.pos.x.set(-deltaX, fix, true)
+            sq.pos.y.set(deltaY, fix, true)
             sq.goRightForced(refSurf) // t
             (sq.pos as? Surface)?.updateTile(1, 0)
-            sq.pos.x.setPos(0f, fix, true)
-            sq.pos.y.setPos(deltaY, fix, true)
-            sq.pos.width.setPos(smallWidth, fix, true)
+            sq.pos.x.set(0f, fix, true)
+            sq.pos.y.set(deltaY, fix, true)
+            sq.pos.width.set(smallWidth, fix, true)
             sq.goRightForced(refSurf) // tr
             (sq.pos as? Surface)?.updateTile(2, 0)
-            sq.pos.x.setPos(deltaX, fix, true)
-            sq.pos.y.setPos(deltaY, fix, true)
+            sq.pos.x.set(deltaX, fix, true)
+            sq.pos.y.set(deltaY, fix, true)
             sq.goRightForced(refSurf) // l
             (sq.pos as? Surface)?.updateTile(3, 0)
-            sq.pos.x.setPos(-deltaX, fix, true)
-            sq.pos.y.setPos(0f, fix, true)
-            sq.pos.height.setPos(smallHeight, fix, true)
+            sq.pos.x.set(-deltaX, fix, true)
+            sq.pos.y.set(0f, fix, true)
+            sq.pos.height.set(smallHeight, fix, true)
             sq.goRightForced(refSurf) // c
             (sq.pos as? Surface)?.updateTile(4, 0)
-            sq.pos.x.setPos(0f, fix, true)
-            sq.pos.y.setPos(0f, fix, true)
-            sq.pos.width.setPos(smallWidth, fix, true)
-            sq.pos.height.setPos(smallHeight, fix, true)
+            sq.pos.x.set(0f, fix, true)
+            sq.pos.y.set(0f, fix, true)
+            sq.pos.width.set(smallWidth, fix, true)
+            sq.pos.height.set(smallHeight, fix, true)
             sq.goRightForced(refSurf) // r
             (sq.pos as? Surface)?.updateTile(5, 0)
-            sq.pos.x.setPos(deltaX, fix, true)
-            sq.pos.y.setPos(0f, fix, true)
-            sq.pos.height.setPos(smallHeight, fix, true)
+            sq.pos.x.set(deltaX, fix, true)
+            sq.pos.y.set(0f, fix, true)
+            sq.pos.height.set(smallHeight, fix, true)
             sq.goRightForced(refSurf) // bl
             (sq.pos as? Surface)?.updateTile(6, 0)
-            sq.pos.x.setPos(-deltaX, fix, true)
-            sq.pos.y.setPos(-deltaY, fix, true)
+            sq.pos.x.set(-deltaX, fix, true)
+            sq.pos.y.set(-deltaY, fix, true)
             sq.goRightForced(refSurf) // b
             (sq.pos as? Surface)?.updateTile(7, 0)
-            sq.pos.x.setPos(0f, fix, true)
-            sq.pos.y.setPos(-deltaY, fix, true)
-            sq.pos.width.setPos(smallWidth, fix, true)
+            sq.pos.x.set(0f, fix, true)
+            sq.pos.y.set(-deltaY, fix, true)
+            sq.pos.width.set(smallWidth, fix, true)
             sq.goRightForced(refSurf) // br
             (sq.pos as? Surface)?.updateTile(8, 0)
-            sq.pos.x.setPos(deltaX, fix, true)
-            sq.pos.y.setPos(-deltaY, fix, true)
+            sq.pos.x.set(deltaX, fix, true)
+            sq.pos.y.set(-deltaY, fix, true)
         }
     }
 }

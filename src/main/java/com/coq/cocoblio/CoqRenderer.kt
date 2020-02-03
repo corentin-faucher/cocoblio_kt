@@ -143,7 +143,7 @@ class CoqRenderer(private val coqActivity: CoqActivity,
         height = newHeight.toFloat()
         width = newWidth.toFloat()
         val ratio = width / height
-        println("onSurfaceChanged portrait: ${portrait}")
+        println("onSurfaceChanged portrait: $portrait")
         portrait = ratio < 1f
 
         if (portrait) {
@@ -239,7 +239,7 @@ class CoqRenderer(private val coqActivity: CoqActivity,
     /** Les static / global access */
     companion object {
         fun initClearColor(r: Float, g: Float, b: Float) {
-            smR.realPos = r; smG.realPos = g; smB.realPos = b
+            smR.set(r); smG.set(g); smB.set(b)
         }
         fun updateClearColor(r: Float, g: Float, b: Float) {
             smR.pos = r; smG.pos = g; smB.pos = b
@@ -269,13 +269,13 @@ class CoqRenderer(private val coqActivity: CoqActivity,
         private const val usableRatioMax = 1.85f
         var bordRatio = 0.95f
         /** La position en z de la camera (libre d'accès) */
-        val smCameraZ = SmPos(2f, 5f)
+        val smCameraZ = SmoothPos(2f, 5f)
         val shadersTime = Chrono()
-        private var smR = SmPos(0f, 8f)
-        private var smG = SmPos(0f, 8f)
-        private var smB = SmPos(0f, 8f)
-        private var widthRatio = SmPos(1f, 8f)
-        private var heightRatio = SmPos(1f, 8f)
+        private var smR = SmoothPos(0f, 8f)
+        private var smG = SmoothPos(0f, 8f)
+        private var smB = SmoothPos(0f, 8f)
+        private var widthRatio = SmoothPos(1f, 8f)
+        private var heightRatio = SmoothPos(1f, 8f)
 
         private var gameEngineCount = 0
     }

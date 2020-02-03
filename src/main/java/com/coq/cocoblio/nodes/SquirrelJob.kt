@@ -90,6 +90,7 @@ fun Node.addRootFlag(flag: Long) {
 /**  Pour chaque noeud :
  * 1. Applique open() pour les Openable,
  * 2. ajoute "show" si non caché,
+ * (show peut être ajouté manuellement avant pour afficher une branche cachée)
  * 3. visite si est une branche avec "show".
  * (show peut avoir été ajouté exterieurement) */
 fun Node.openBranch() {
@@ -144,15 +145,15 @@ fun Node.reshapeBranch() {
     if (!containsAFlag(Flag1.show)) {
         return
     }
-    var reshapeChildren: Boolean = (this as? Reshapable)?.reshape() ?: false
-    if (!containsAFlag(Flag1.reshapableRoot) || !reshapeChildren) {
+    var needToreshapeChildren: Boolean = (this as? Reshapable)?.reshape() ?: false
+    if (!containsAFlag(Flag1.reshapableRoot) || !needToreshapeChildren) {
         return
     }
     val sq = Squirrel(firstChild ?: return)
     while (true) {
         if (sq.pos.containsAFlag(Flag1.show)) {
-            reshapeChildren = (sq.pos as? Reshapable)?.reshape() ?: false
-            if (sq.pos.containsAFlag(Flag1.reshapableRoot) && reshapeChildren) {
+            needToreshapeChildren = (sq.pos as? Reshapable)?.reshape() ?: false
+            if (sq.pos.containsAFlag(Flag1.reshapableRoot) && needToreshapeChildren) {
                 if (sq.goDown()) {
                     continue
                 }
@@ -169,14 +170,14 @@ fun Node.reshapeBranch() {
 }
 
 /** Recherche d'un noeud selectionnable dans le noeud présent. Retourne nil si rien trouvé. */
-fun Node.searchNodeToSelect(absPos: Vector2, nodeToAvoid: Node?) : Node? {
+fun Node.searchBranchForSelectable(absPos: Vector2, nodeToAvoid: Node?) : Node? {
     val relPos = parent?.relativePosOf(absPos) ?: absPos
-    return searchNodeToSelectPrivate(relPos, nodeToAvoid)
+    return searchBranchForSelectablePrivate(relPos, nodeToAvoid)
 }
 
 /*-- Private stuff --*/
-private fun Node.searchNodeToSelectPrivate(relPos: Vector2,
-                                           nodeToAvoid: Node?) : Node? {
+private fun Node.searchBranchForSelectablePrivate(relPos: Vector2,
+                                                  nodeToAvoid: Node?) : Node? {
     val sq = Squirrel(this, relPos, Squirrel.RSI.Ones)
     var candidate: Node? = null
 

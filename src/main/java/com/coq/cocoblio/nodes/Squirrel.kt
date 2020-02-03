@@ -45,13 +45,6 @@ class Squirrel(pos_: Node) {
         x = pos.x.realPos;  y = pos.y.realPos
         sx = 1.0f;              sy = 1.0f
     }
-    // Superflu, si on veut vraiment reinit c'est plus clair de prendre un var sq:Squirrel...
-    /*fun reinit(pos: Node) {
-        this.pos = pos
-        this.root = pos
-        x = pos.x.realPos;  y = pos.y.realPos
-        sx = 1.0f;              sy = 1.0f
-    }*/
     constructor(pos_: Node, scaleInit: RSI) : this(pos_) {
         when(scaleInit) {
             RSI.Ones -> {sx = 1.0f; sy = 1.0f}
@@ -120,12 +113,14 @@ class Squirrel(pos_: Node) {
         return true
     }
     /** Va au petit-frère non-caché et du type voulu. */
+    /* Pas besoin ?
     inline fun <reified A: Node> goRightWithoutTyped(flag: Long) : Boolean {
         do {
             if(!goRight()) {return false}
         } while((pos !is A) or pos.containsAFlag(flag))
         return true
     }
+     */
     /** Va au grand-frère. S'arrête et retourne false si ne peut y aller (dépassé l'ainé) */
     fun goLeft() : Boolean {
         pos.bigBro?.let { pos = it; return true }

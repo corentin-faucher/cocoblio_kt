@@ -17,11 +17,11 @@ fun <T: Node> T.alsoAddLocStrWithFrame(id: Int, frameResID: Int = R.drawable.fra
                                        delta: Float = 0.40f, ceiledWidth: Float? = null) : T {
     if (firstChild != null) { printerror("A déjà quelque chose."); return this}
 
-    scaleX.setPos(height.realPos)
-    scaleY.setPos(height.realPos)
+    scaleX.set(height.realPos)
+    scaleY.set(height.realPos)
     val scaleCeiledWidth = ceiledWidth?.let{it / height.realPos}
-    width.setPos(1f)
-    height.setPos(1f)
+    width.set(1f)
+    height.set(1f)
     Frame(this, false, delta,
         0f, frameResID, Flag1.giveSizesToParent)
     LocStrSurf(this, id, 0f, 0f, 1f,
@@ -33,10 +33,10 @@ fun <T: Node> T.alsoAddCstStrWithFrame(str: String, frameResID: Int = R.drawable
                                        delta: Float = 0.40f) : T {
     if (firstChild != null) { printerror("A déjà quelque chose."); return this}
 
-    scaleX.setPos(height.realPos)
-    scaleY.setPos(height.realPos)
-    width.setPos(1f)
-    height.setPos(1f)
+    scaleX.set(height.realPos)
+    scaleY.set(height.realPos)
+    width.set(1f)
+    height.set(1f)
 
     Frame(this, false, delta,
         0f, frameResID, Flag1.giveSizesToParent)
@@ -51,10 +51,10 @@ fun <T: Node> T.alsoAddEdtStrWithFrame(id: Int, frameResID: Int = R.drawable.fra
                                        delta: Float = 0.40f) : T {
     if (firstChild != null) { printerror("A déjà quelque chose."); return this}
 
-    scaleX.setPos(height.realPos)
-    scaleY.setPos(height.realPos)
-    width.setPos(1f)
-    height.setPos(1f)
+    scaleX.set(height.realPos)
+    scaleY.set(height.realPos)
+    width.set(1f)
+    height.set(1f)
 
     Frame(this, false, delta,
         0f, frameResID, Flag1.giveSizesToParent)
@@ -70,7 +70,7 @@ fun Node.tryToAddFrame() {
     if (!showFrame) return
     Surface(this, R.drawable.test_frame, 0f, 0f, height.realPos,
         0f, 0, Flag1.surfaceDontRespectRatio
-    ).also{it.width.setPos(width.realPos)}
+    ).also{it.width.set(width.realPos)}
 }
 
 /** Aligner les descendants d'un noeud. Retourne le nombre de descendants traités. */
@@ -119,8 +119,8 @@ fun Node.alignTheChildren(alignOpt: Int, ratio: Float = 1f, spacingRef: Float = 
     val fix = (alignOpt and AlignOpt.fixPos != 0)
     val setDef = (alignOpt and AlignOpt.dontSetAsDef == 0)
     if (alignOpt and AlignOpt.dontUpdateSizes == 0) {
-        width.setPos(w, fix, setDef)
-        height.setPos(h, fix, setDef)
+        width.set(w, fix, setDef)
+        height.set(h, fix, setDef)
     }
     // 4. Aligner les éléments
     sq = Squirrel(this)
@@ -131,9 +131,9 @@ fun Node.alignTheChildren(alignOpt: Int, ratio: Float = 1f, spacingRef: Float = 
         do {
             x += sq.pos.deltaX * spacingRef + spacing/2f
 
-            sq.pos.x.setPos(x, fix, setDef)
+            sq.pos.x.set(x, fix, setDef)
             if(setDef)
-                sq.pos.y.setPos(0f, fix, setDef)
+                sq.pos.y.set(0f, fix, setDef)
             else
                 sq.pos.y.setToDef()
 
@@ -147,10 +147,10 @@ fun Node.alignTheChildren(alignOpt: Int, ratio: Float = 1f, spacingRef: Float = 
         y -= sq.pos.deltaY * spacingRef + spacing/2f
 
         if(setDef)
-            sq.pos.x.setPos(0f, fix, setDef)
+            sq.pos.x.set(0f, fix, setDef)
         else
             sq.pos.x.setToDef()
-        sq.pos.y.setPos(y, fix, setDef)
+        sq.pos.y.set(y, fix, setDef)
 
         y -= sq.pos.deltaY * spacingRef + spacing/2f
     } while (sq.goRightWithout(Flag1.hidden))
@@ -181,6 +181,6 @@ fun Node.adjustWidthAndHeightFromChildren() {
         if (wtmp > w)
             w = wtmp
     } while (sq.goRightWithout(Flag1.hidden))
-    width.setPos(w)
-    height.setPos(h)
+    width.set(w)
+    height.set(h)
 }

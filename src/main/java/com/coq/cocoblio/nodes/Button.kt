@@ -34,10 +34,10 @@ abstract class SwitchButton(refNode: Node?, var isOn: Boolean,
     private val nub: Surface
 
     init {
-        scaleX.realPos = height
-        scaleY.realPos = height
-        this.height.realPos = 1f
-        width.realPos = 2f
+        scaleX.set(height)
+        scaleY.set(height)
+        this.height.set(1f)
+        width.set(2f)
         back = Surface( this, R.drawable.switch_back, 0f, 0f, 1f)
         nub = Surface(this, R.drawable.switch_front,
             if(isOn) 0.375f else -0.375f, 0f, 1f, 10f)
@@ -46,7 +46,7 @@ abstract class SwitchButton(refNode: Node?, var isOn: Boolean,
 
     fun fix(isOn: Boolean) {
         this.isOn = isOn
-        nub.x.realPos = if(isOn) 0.375f else -0.375f
+        nub.x.set(if(isOn) 0.375f else -0.375f)
         setBackColor()
     }
     /** Simple touche. Permute l'état présent (n'effectue pas l'"action") */

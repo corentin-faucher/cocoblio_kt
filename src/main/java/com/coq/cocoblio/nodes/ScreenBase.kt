@@ -36,13 +36,13 @@ abstract class ScreenBase(refNode: Node,
             val scale = min(
                 CoqRenderer.frameUsableWidth / width.realPos,
                 CoqRenderer.frameUsableHeight / height.realPos)
-            scaleX.setPos(scale, isOpening)
-            scaleY.setPos(scale, isOpening)
+            scaleX.set(scale, isOpening)
+            scaleY.set(scale, isOpening)
         } else {
-            scaleX.setPos(1f, isOpening)
-            scaleY.setPos(1f, isOpening)
-            width.setPos(CoqRenderer.frameUsableWidth, isOpening)
-            height.setPos(CoqRenderer.frameUsableHeight, isOpening)
+            scaleX.set(1f, isOpening)
+            scaleY.set(1f, isOpening)
+            width.set(CoqRenderer.frameUsableWidth, isOpening)
+            height.set(CoqRenderer.frameUsableHeight, isOpening)
         }
     }
 }

@@ -3,7 +3,7 @@
 package com.coq.cocoblio.nodes
 
 import com.coq.cocoblio.*
-import com.coq.cocoblio.maths.SmPos
+import com.coq.cocoblio.maths.SmoothPos
 import com.coq.cocoblio.maths.Vector2
 import com.coq.cocoblio.maths.printerror
 
@@ -28,13 +28,13 @@ open class Node {
             containsAFlag(Flag1.show or Flag1.branchToDisplay)
 
     /** Positions, tailles, etc. */
-    val x : SmPos
-    val y : SmPos
-    val z : SmPos
-    val width  : SmPos
-    val height : SmPos
-    val scaleX : SmPos
-    val scaleY : SmPos
+    val x : SmoothPos
+    val y : SmoothPos
+    val z : SmoothPos
+    val width  : SmoothPos
+    val height : SmoothPos
+    val scaleX : SmoothPos
+    val scaleY : SmoothPos
     /** Demi espace occupé en x. (width * scaleX) / 2 */
     val deltaX: Float
         get() = width.realPos * scaleX.realPos / 2.0f
@@ -82,13 +82,13 @@ open class Node {
     /** Noeud "vide" et "seul" */
     constructor(parent: Node?) {
         flags = 0L
-        x = SmPos(0f)
-        y = SmPos(0f)
-        z = SmPos(0f)
-        width = SmPos(4f)
-        height = SmPos(4f)
-        scaleX = SmPos(1f)
-        scaleY = SmPos(1f)
+        x = SmoothPos(0f)
+        y = SmoothPos(0f)
+        z = SmoothPos(0f)
+        width = SmoothPos(4f)
+        height = SmoothPos(4f)
+        scaleX = SmoothPos(1f)
+        scaleY = SmoothPos(1f)
         piu = CoqRenderer.PerInstanceUniforms()
         // 2. Ajustement des références
         parent?.let {
@@ -101,13 +101,13 @@ open class Node {
                 flags: Long = 0, asParent:Boolean = true, asElderBigbro: Boolean = false) {
         // 1. Set data...
         this.flags = flags
-        this.x = SmPos(x, lambda)
-        this.y = SmPos(y, lambda)
-        this.z = SmPos(0f, lambda)
-        this.width = SmPos(width, lambda)
-        this.height = SmPos(height, lambda)
-        scaleX = SmPos(1f, lambda)
-        scaleY = SmPos(1f, lambda)
+        this.x = SmoothPos(x, lambda)
+        this.y = SmoothPos(y, lambda)
+        this.z = SmoothPos(0f, lambda)
+        this.width = SmoothPos(width, lambda)
+        this.height = SmoothPos(height, lambda)
+        scaleX = SmoothPos(1f, lambda)
+        scaleY = SmoothPos(1f, lambda)
         piu = CoqRenderer.PerInstanceUniforms()
         // 2. Ajustement des références
         refNode?.let {

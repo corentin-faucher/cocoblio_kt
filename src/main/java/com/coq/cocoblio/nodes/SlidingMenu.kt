@@ -1,7 +1,7 @@
 package com.coq.cocoblio.nodes
 
 import com.coq.cocoblio.*
-import com.coq.cocoblio.maths.SmPos
+import com.coq.cocoblio.maths.SmoothPos
 import com.coq.cocoblio.maths.Vector2
 import com.coq.cocoblio.maths.printerror
 import java.util.*
@@ -21,11 +21,11 @@ class SlidingMenu(refNode: Node, private val nDisplayed: Int,
                   val getIndicesRangeAtOpening: (() -> IntRange),
                   val getPosIndex: (() -> Int)
 ) : SearchableNode(refNode, Flag1.selectableRoot, Flag1.selectable,
-    x, y, width, height, 10f, Flag1.selectable), Draggable, Openable {
+    x, y, width, height, 10f), Draggable, Openable {
     private var menuGrabPosY: Float? = null
     private var indicesRange: IntRange = IntRange.EMPTY
     private val menu: Node // Le menu qui "glisse" sur le noeud racine.
-    private val vitY = SmPos(0f, 4f) // La vitesse lors du "fling"
+    private val vitY = SmoothPos(0f, 4f) // La vitesse lors du "fling"
     private val deltaT = Chrono() // Pour la distance parcourue
     private val flingChrono = Chrono() // Temps de "vol"
     /** Le déplacement maximal du menu en y. 0 si n <= nD. */
@@ -76,8 +76,8 @@ class SlidingMenu(refNode: Node, private val nDisplayed: Int,
         do {
             // Scaling -> taille attendu / taille actuelle
             val scale = smallItemHeight / sq.pos.height.realPos
-            sq.pos.scaleX.realPos = scale
-            sq.pos.scaleY.realPos = scale
+            sq.pos.scaleX.set(scale)
+            sq.pos.scaleY.set(scale)
         } while (sq.goRight())
 
         // 4. Aligner les éléments et placer au bon endroit.
@@ -110,7 +110,7 @@ class SlidingMenu(refNode: Node, private val nDisplayed: Int,
             return false
         }
         // 1. Cas on laisse en "fling" (checkItemVisibilty s'occupe de mettre à jour la position)
-        vitY.setPos(speed.y/2f, fix = true, setDef = false)
+        vitY.set(speed.y/2f, fix = true, setAsDef = false)
         flingChrono.start()
         deltaT.start()
 
@@ -180,6 +180,6 @@ class SlidingMenu(refNode: Node, private val nDisplayed: Int,
         val yCand = if (snap) { // Il faut "snapper" à une position.
             round((yCandIn - menuDeltaYMax)/itemHeight) * itemHeight + menuDeltaYMax
         } else { yCandIn }
-        menu.y.setPos(max(min(yCand, menuDeltaYMax), -menuDeltaYMax), fix, setDef = false)
+        menu.y.set(max(min(yCand, menuDeltaYMax), -menuDeltaYMax), fix, setAsDef = false)
     }
 }

@@ -33,8 +33,8 @@ class NumberNode : Node {
         this.extraDigit = extraDigit
         this.spacing = spacing
         this.sepSpacing = sepSpacing
-        scaleX.setPos(height)
-        scaleY.setPos(height)
+        scaleX.set(height)
+        scaleY.set(height)
 
         update()
     }
@@ -69,7 +69,7 @@ class NumberNode : Node {
     private fun update() {
         // 0. Init...
         val refSurf = Surface(null, digitPngResID, 0f, 0f, 1f)
-        refSurf.scaleX.realPos = spacing
+        refSurf.scaleX.set(spacing)
         val sq = Squirrel(this)
         val displayedNumber: UInt = abs(number).toUInt()
         val isNegative = number < 0
@@ -90,7 +90,7 @@ class NumberNode : Node {
         // 3. Separator et chiffres restants
         if(unitDecimal > 0) {
             (sq.pos as? Surface)?.updateTile(separator.ordinal, 0)
-            sq.pos.scaleX.realPos = sepSpacing
+            sq.pos.scaleX.set(sepSpacing)
             sq.goRightForced(refSurf)
             for (i in unitDecimal-1 downTo 0) {
                 (sq.pos as? Surface)?.updateTile(displayedNumber.getTheDigitAt(i).toInt(), 0)

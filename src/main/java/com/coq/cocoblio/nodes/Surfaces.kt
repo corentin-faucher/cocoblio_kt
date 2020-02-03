@@ -79,12 +79,12 @@ open class Surface : Node {
     protected fun updateRatio() {
         if (!containsAFlag(Flag1.surfaceDontRespectRatio)) {
             if (containsAFlag(Flag1.surfaceWithCeiledWidth)) {
-                width.setPos(
+                width.set(
                     min(height.realPos * tex.ratio, width.defPos),
-                    fix = true, setDef = false)
+                    fix = true, setAsDef = false)
             } else {
-                width.setPos(height.realPos * tex.ratio,
-                    fix = true, setDef = true)
+                width.set(height.realPos * tex.ratio,
+                    fix = true, setAsDef = true)
             }
         }
         (bigBro as? Frame)?.let { frame ->
@@ -93,8 +93,8 @@ open class Surface : Node {
         }
         parent?.let{ parent ->
             if (containsAFlag(Flag1.giveSizesToParent)) {
-                parent.width.setPos(width.realPos)
-                parent.height.setPos(height.realPos)
+                parent.width.set(width.realPos)
+                parent.height.set(height.realPos)
             }
         }
     }
