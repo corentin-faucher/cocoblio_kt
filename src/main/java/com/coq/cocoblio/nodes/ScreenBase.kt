@@ -25,7 +25,7 @@ abstract class ScreenBase(refNode: Node,
     private fun alignScreenElements(isOpening:  Boolean) {
         if (!containsAFlag(Flag1.dontAlignScreenElements)) {
             val ceiledScreenRatio = CoqRenderer.frameUsableWidth / CoqRenderer.frameUsableHeight
-            var alignOpt = AlignOpt.respectRatio or AlignOpt.dontSetAsDef
+            var alignOpt = AlignOpt.respectRatio or AlignOpt.setSecondaryToDefPos
             if (ceiledScreenRatio < 1f)
                 alignOpt = alignOpt or AlignOpt.vertically
             if (isOpening)

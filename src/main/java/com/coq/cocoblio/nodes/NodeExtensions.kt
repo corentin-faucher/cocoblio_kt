@@ -115,42 +115,49 @@ fun Node.alignTheChildren(alignOpt: Int, ratio: Float = 1f, spacingRef: Float = 
             }
         }
     }
-    // 3. Setter les dims.
+    // 3. Les options...
     val fix = (alignOpt and AlignOpt.fixPos != 0)
-    val setDef = (alignOpt and AlignOpt.dontSetAsDef == 0)
+    val horizontal = (alignOpt and AlignOpt.vertically == 0)
+    val setAsDef = (alignOpt and AlignOpt.setAsDefPos != 0)
+    val setSecondaryToDefPos = (alignOpt and AlignOpt.setSecondaryToDefPos != 0)
+    // 3. Setter les dims.
+
     if (alignOpt and AlignOpt.dontUpdateSizes == 0) {
-        width.set(w, fix, setDef)
-        height.set(h, fix, setDef)
+        width.set(w, fix, setAsDef)
+        height.set(h, fix, setAsDef)
     }
     // 4. Aligner les éléments
     sq = Squirrel(this)
     if (!sq.goDownWithout(Flag1.hidden)) {
         printerror("pas de child2.");return 0}
-    if(alignOpt and AlignOpt.vertically == 0) {
+    // 4.1 Placement horizontal
+    if(horizontal) {
         var x = - w / 2f
         do {
             x += sq.pos.deltaX * spacingRef + spacing/2f
 
-            sq.pos.x.set(x, fix, setDef)
-            if(setDef)
-                sq.pos.y.set(0f, fix, setDef)
-            else
-                sq.pos.y.setToDef()
+            sq.pos.x.set(x, fix, setAsDef)
+            if (setSecondaryToDefPos) {
+                sq.pos.y.setRelToDef(0f, fix)
+            } else {
+                sq.pos.y.set(0f, fix, false)
+            }
 
             x += sq.pos.deltaX * spacingRef + spacing/2f
         } while (sq.goRightWithout(Flag1.hidden))
         return n
     }
-
+    // 4.2 Placement vertical
     var y =  h / 2f
     do {
         y -= sq.pos.deltaY * spacingRef + spacing/2f
 
-        if(setDef)
-            sq.pos.x.set(0f, fix, setDef)
-        else
-            sq.pos.x.setToDef()
-        sq.pos.y.set(y, fix, setDef)
+        sq.pos.y.set(y, fix, setAsDef)
+        if (setSecondaryToDefPos) {
+            sq.pos.x.setRelToDef(0f, fix)
+        } else {
+            sq.pos.x.set(0f, fix, false)
+        }
 
         y -= sq.pos.deltaY * spacingRef + spacing/2f
     } while (sq.goRightWithout(Flag1.hidden))
@@ -163,7 +170,14 @@ object AlignOpt {
     const val dontUpdateSizes = 2
     const val respectRatio = 4
     const val fixPos = 8
-    const val dontSetAsDef = 16
+    /** En horizontal, le "primary" est "x" des children,
+     * le "secondary" est "y". (En vertical prim->"y", sec->"x".)
+     * Place la position "alignée" comme étant la position par défaut pour le primary des children
+     * et pour le width/height du parent. Ne touche pas à defPos du secondary des children. */
+    const val setAsDefPos = 16
+    /** S'il y a "setSecondaryToDefPos", on place "y" à sa position par défaut,
+     * sinon, on le place à zéro. */
+    const val setSecondaryToDefPos = 32
 }
 
 fun Node.adjustWidthAndHeightFromChildren() {

@@ -6,9 +6,9 @@ import com.coq.cocoblio.GlobalChrono
 
 /** Angle "moyen" interpollé en fonction des dernières valeurs entrées.
  * (Pour un roulement smooth.) */
-class InterpolAngle(size: Int, posRef: Float) {
+class InterpolatedAngle(size: Int, posRef: Float) {
 
-    fun pushPos(newPos: Float) {
+    fun push(newPos: Float) {
         val time = GlobalChrono.elapsedMS
         if (time == vT[lastIndex])
             return

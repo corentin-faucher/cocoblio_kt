@@ -32,7 +32,9 @@ abstract class SmoothDimension : Cloneable {
         setLambdaBetaType(2f * lambda, lambda * lambda)
     }
 
-    /*-- !! Setters Important !! --*/
+    /*-- !! Setter Important !! --*/
+    /** Set : Par défaut on "initialise", i.e. fixe la position et
+     * l'enregistre comme position par défaut. */
     open fun set(newPos: Float, fix: Boolean = true, setAsDef: Boolean = true) {
         if (setAsDef)
             defPos = newPos
@@ -45,21 +47,16 @@ abstract class SmoothDimension : Cloneable {
         }
         realPos = newPos
     }
-    open fun setRelToDef(shift: Float, fix: Boolean) {
-        if (fix) {
-            a = 0f; b = 0f
-        } else {
-            val deltaT = elapsedSec
-            setAB(getDelta(deltaT) + realPos - (defPos + shift), getSlope(deltaT))
-            setTime = GlobalChrono.elapsedMS32
-        }
-        realPos = defPos + shift
-    }
     /*-----------------------------*/
 
     /*-- Sous-Setters de "conveniance". --*/
-    fun setToDef() {
-        set(defPos, fix = false, setAsDef = false)
+    fun setRelToDef(shift: Float, fix: Boolean) {
+        set(defPos + shift, fix, false)
+    }
+    /** move: place par rapport à realPos (i.e. un déplacement)
+     * Pourrait être "setRelToRealPos"... */
+    fun move(shift: Float, fix: Boolean, setAsDef: Boolean) {
+        set(realPos + shift, fix, setAsDef)
     }
     fun fadeIn(delta: Float? = null) {
         setRelToDef(delta ?: defaultFadeDelta, true)
@@ -246,17 +243,6 @@ open class SmoothAngle : SmoothDimension {
         }
         realPos = newPos.toNormalizedAngle()
     }
-    override fun setRelToDef(shift: Float, fix: Boolean) {
-        if (fix) {
-            a = 0f; b = 0f
-        } else {
-            val deltaT = elapsedSec
-            setAB((getDelta(deltaT) + realPos - (defPos + shift)).toNormalizedAngle(),
-                getSlope(deltaT))
-            setTime = GlobalChrono.elapsedMS32
-        }
-        realPos = (defPos + shift).toNormalizedAngle()
-    }
 
     public override fun clone(): SmoothAngle {
         return super.clone() as SmoothAngle
@@ -296,18 +282,6 @@ class SmoothAngleWithDrift : SmoothAngle {
         realPos = newPos.toNormalizedAngle()
         drift = 0f
     }
-    override fun setRelToDef(shift: Float, fix: Boolean) {
-        if (fix) {
-            a = 0f; b = 0f
-        } else {
-            val deltaT = elapsedSec
-            setAB((getDelta(deltaT) + drift * deltaT + realPos - (defPos + shift)).toNormalizedAngle(),
-                getSlope(deltaT) + drift)
-            setTime = GlobalChrono.elapsedMS32
-        }
-        realPos = (defPos + shift).toNormalizedAngle()
-        drift = 0f
-    }
     fun set(newPos: Float, newDrift: Float) {
         val deltaT = elapsedSec
         setAB((getDelta(deltaT) + drift * deltaT + realPos - newPos).toNormalizedAngle(),
@@ -317,7 +291,7 @@ class SmoothAngleWithDrift : SmoothAngle {
         drift = newDrift
     }
 
-    public override fun clone(): SmoothAngleWithDrift {
+    override fun clone(): SmoothAngleWithDrift {
         return super.clone() as SmoothAngleWithDrift
     }
 }
