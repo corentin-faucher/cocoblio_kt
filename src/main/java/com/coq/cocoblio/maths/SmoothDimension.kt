@@ -5,14 +5,18 @@ package com.coq.cocoblio.maths
 import com.coq.cocoblio.GlobalChrono
 import kotlin.math.*
 
-
+/** Classe pour gérer les déplacement "smooth", i.e. avec courbe de lissage.
+ * Utile pour faire des transition et déplacements graduels des objets (nodes)
+ * dans l'écran. */
 abstract class SmoothDimension : Cloneable {
     /** Mémoire/position par défaut. */
     var defPos: Float
     /** Dernière position entrée. */
     var realPos: Float
         protected set
-    /** Le getter/setter par défaut pour les SmoothDimension. */
+    /** Le getter/setter par défaut pour les SmoothDimension.
+     * set: setter "smooth", i.e. set(newPos, fix = false, setAsDef = false).
+     * get: getter "smooth", i.e. utilise la courbe de lissage (et non realPos directement). */
     open var pos: Float
         get() {
             return getDelta(elapsedSec) + realPos
@@ -50,6 +54,7 @@ abstract class SmoothDimension : Cloneable {
     /*-----------------------------*/
 
     /*-- Sous-Setters de "conveniance". --*/
+    /** Se place par rapport à defPos. */
     fun setRelToDef(shift: Float, fix: Boolean) {
         set(defPos + shift, fix, false)
     }
@@ -65,10 +70,14 @@ abstract class SmoothDimension : Cloneable {
     fun fadeOut(delta: Float? = null) {
         set(realPos -(delta ?: defaultFadeDelta), fix = false, setAsDef = false)
     }
-
+    /** Met à jour comme amortissement-critique
+     * où lambda est le paramètre de l'exp. décroissante. */
     fun updateLambda(lambda: Float) {
         updateConstants(2.0f * lambda, lambda * lambda)
     }
+    /** Met à jour comme un systeme masse/ressort/amortisement. (m=1)
+     * gamma : constante d'amortissement.
+     * k : constante du ressort. */
     fun updateConstants(gamma: Float, k: Float) {
         // 1. Enregistrer delta et pente avant de modifier la courbe.
         val deltaT = elapsedSec
