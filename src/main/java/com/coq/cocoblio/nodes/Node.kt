@@ -43,7 +43,7 @@ open class Node {
         get() = height.realPos * scaleY.realPos / 2.0f
 
     /** Données d'affichage. */
-    val piu : CoqRenderer.PerInstanceUniforms
+    val piu : Renderer.PerInstanceUniforms
 
     // Liens
     var parent: Node? = null
@@ -89,7 +89,7 @@ open class Node {
         height = SmoothPos(4f)
         scaleX = SmoothPos(1f)
         scaleY = SmoothPos(1f)
-        piu = CoqRenderer.PerInstanceUniforms()
+        piu = Renderer.PerInstanceUniforms()
         // 2. Ajustement des références
         parent?.let {
             connectToParent(it, false)
@@ -108,7 +108,7 @@ open class Node {
         this.height = SmoothPos(height, lambda)
         scaleX = SmoothPos(1f, lambda)
         scaleY = SmoothPos(1f, lambda)
-        piu = CoqRenderer.PerInstanceUniforms()
+        piu = Renderer.PerInstanceUniforms()
         // 2. Ajustement des références
         refNode?.let {
             if (asParent) {
@@ -130,7 +130,7 @@ open class Node {
         this.height = toCloneNode.height.clone()
         scaleX = toCloneNode.scaleX.clone()
         scaleY = toCloneNode.scaleY.clone()
-        piu = CoqRenderer.PerInstanceUniforms(toCloneNode.piu)
+        piu = Renderer.PerInstanceUniforms(toCloneNode.piu)
         // 2. Ajustement des références
         refNode?.let {
             if (asParent) {

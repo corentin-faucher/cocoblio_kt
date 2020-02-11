@@ -2,8 +2,10 @@ package com.coq.cocoblio.nodes
 
 import com.coq.cocoblio.Language
 import com.coq.cocoblio.Mesh
+import com.coq.cocoblio.R
 import com.coq.cocoblio.maths.SmTrans
 import com.coq.cocoblio.Texture
+import com.coq.cocoblio.maths.printerror
 import kotlin.math.min
 
 /** Un noeud "surface". Noeud qui est affiché. Possède une texture (image png par exemple)
@@ -121,6 +123,25 @@ open class LanguageSurface : Surface, Openable {
     ) : super(refNode, toCloneNode, asParent, asElderBigbro)
     override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
             = LanguageSurface(refNode, this, asParent, asElderBigbro)
+}
+
+@Suppress("ConvertSecondaryConstructorToPrimary")
+class TestFrame : Surface, Reshapable, Openable {
+    constructor(refNode: Node) : super(refNode, R.drawable.test_frame,
+        0f, 0f, refNode.height.realPos, 10f,
+        0, Flag1.surfaceDontRespectRatio) {
+        width.set(refNode.width.realPos)
+    }
+    override fun open() {
+        val theParent = parent ?: run{ printerror("Pas de parent."); return}
+        height.pos = theParent.height.realPos
+        width.pos = theParent.width.realPos
+    }
+
+    override fun reshape(): Boolean {
+        open()
+        return false
+    }
 }
 
 /** Surface d'une string constante. (non localisée, définie "on the fly".) */

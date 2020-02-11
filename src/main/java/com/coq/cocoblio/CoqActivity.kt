@@ -1,13 +1,12 @@
 package com.coq.cocoblio
 
-import android.annotation.SuppressLint
+
 import android.app.Activity
 import android.content.res.Configuration
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.view.*
 import com.coq.cocoblio.nodes.KeyboardKey
-import com.coq.cocoblio.nodes.Node
 
 /** Les events sont gérés par le renderer.... ? pas le choix ?
  * En effet, ils doivent être dans la thread d'OpenGL...
@@ -17,14 +16,11 @@ abstract class CoqActivity(private val appThemeID: Int,
                            private val fragShaderID: Int?
 ) : Activity(), GestureDetector.OnGestureListener {
 
-//    private lateinit var ge: GameEngineBase
-//    abstract fun getGameEngine() : GameEngineBase
-    abstract fun getEventstHandler() : EventsHandler
-    abstract fun getStructureRoot() : Node?
+    protected lateinit var renderer: Renderer
+    // Workaround... Solution ???
+    abstract fun getGameEngine(): GameEngineBase
 
-    // La vue OpenGL avec (avec le renderer).
-    private lateinit var view: CoqGLSurfaceView
-
+    private lateinit var view: GLSurfaceView
     private lateinit var gestureDetector: GestureDetector
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,14 +30,16 @@ abstract class CoqActivity(private val appThemeID: Int,
         gestureDetector = GestureDetector(this, this)
         gestureDetector.setIsLongpressEnabled(false)
 
-        view = CoqGLSurfaceView(this)
-        view.renderer = CoqRenderer(this, vertShaderID, fragShaderID)
-        view.setRenderer(view.renderer)
+        view = GLSurfaceView(this)
+        view.setEGLContextClientVersion(2)
+        view.preserveEGLContextOnPause = true
+        renderer = Renderer(this, vertShaderID, fragShaderID)
+        view.setRenderer(renderer)
+
         setContentView(view)
 
         SoundManager.initWith(this)
     }
-
 
     override fun onConfigurationChanged(newConfig: Configuration?) {
         with(view) {
@@ -97,7 +95,7 @@ abstract class CoqActivity(private val appThemeID: Int,
                          velocityX: Float, velocityY: Float): Boolean {
         with(view) {
             queueEvent {
-                renderer.onTouchUp(CoqRenderer.getPositionFrom(velocityX, velocityY, true))
+                renderer.onTouchUp(velocityX, velocityY)
             }
         }
         return true
@@ -114,8 +112,7 @@ abstract class CoqActivity(private val appThemeID: Int,
                           distanceX: Float, distanceY: Float): Boolean {
         with(view) {
             queueEvent {
-                renderer.onTouchDrag(CoqRenderer.getPositionFrom(eFirst.x, eFirst.y, true),
-                    CoqRenderer.getPositionFrom(eNow.x, eNow.y, true))
+                renderer.onTouchDrag(eFirst.x, eFirst.y, eNow.x, eNow.y)
             }
         }
         return true
@@ -127,7 +124,7 @@ abstract class CoqActivity(private val appThemeID: Int,
     override fun onSingleTapUp(event: MotionEvent): Boolean {
         with(view) {
             queueEvent {
-                renderer.onSingleTap(CoqRenderer.getPositionFrom(event.x, event.y, true))
+                renderer.onSingleTap(event.x, event.y)
             }
         }
         return true
@@ -136,7 +133,7 @@ abstract class CoqActivity(private val appThemeID: Int,
         if (!gestureDetector.onTouchEvent(event) && (event?.action == MotionEvent.ACTION_UP)) {
             with(view) {
                 queueEvent {
-                    renderer.onTouchUp(null)
+                    renderer.onTouchUp(null, null)
                 }
             }
 
@@ -167,12 +164,3 @@ abstract class CoqActivity(private val appThemeID: Int,
     }
 }
 
-@SuppressLint("ViewConstructor")
-class CoqGLSurfaceView(main: CoqActivity) : GLSurfaceView(main) {
-    init {
-        setEGLContextClientVersion(2)
-        preserveEGLContextOnPause = true
-    }
-
-    lateinit var renderer: CoqRenderer
-}

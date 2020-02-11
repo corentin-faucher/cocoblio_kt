@@ -14,15 +14,6 @@ abstract class Button(refNode: Node?,
 ) : SearchableNode(refNode, Flag1.selectableRoot, Flag1.selectable,
     x, y, height, height, lambda, flags), Actionable
 
-/** Classe de base pour un bouton qui doit être reshapé dans le cadre de son parent. */
-abstract class ReshapableButton(refNode: Node?,
-                                x: Float, y: Float, height: Float,
-                                lambda: Float = 0f, flags: Long = 0
-) : SearchableNode(refNode,
-    Flag1.selectableRoot or Flag1.reshapableRoot,
-    Flag1.selectable,
-    x, y, height, height, lambda, flags), Actionable, Reshapable
-
 
 /** Classe de base des boutons de type "on/off".
  * Contient déjà les sous-noeuds de surface d'une switch. */

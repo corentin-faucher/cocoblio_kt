@@ -87,6 +87,40 @@ class Texture {
     private fun initAsPng() {
 
     }
+    enum class TestAnimal {
+        bear,
+        bee,
+        cat,
+        crab,
+
+        crocodile,
+        elephant,
+        fish,
+        fox,
+
+        frog,
+        giraffe,
+        hippo,
+        ladyBug,
+
+        lion,
+        molaMola,
+        monkey,
+        moose,
+
+        octopus,
+        peacock,
+        penguin,
+        pig,
+
+        rhino,
+        sheep,
+        snail,
+        snake,
+
+        turtle,
+        whale;
+    }
 
     companion object {
         /*-- Méthodes de bases --*/
@@ -106,7 +140,7 @@ class Texture {
             initPngTex(R.drawable.frame_mocha, 3,3, context)
             initPngTex(R.drawable.frame_white_back, 3,3, context)
             initPngTex(R.drawable.language_flags, 4,4, context)
-            initPngTex(R.drawable.some_animals, 4,4, context)
+            initPngTex(R.drawable.some_animals, 4,7, context)
             initPngTex(R.drawable.sparkle_stars, 3,2, context)
             initPngTex(R.drawable.switch_back, 1,1, context)
             initPngTex(R.drawable.switch_front, 1,1, context)

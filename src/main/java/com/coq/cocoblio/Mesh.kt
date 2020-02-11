@@ -73,7 +73,6 @@ class Mesh(val vertices: FloatArray, internal val indices: IntArray?, private va
         }
     }
 
-    @Suppress("MemberVisibilityCanBePrivate")
     fun updateVerticesBuffer() {
         verticesBuffer = ByteBuffer.allocateDirect(vertices.size * 4).run {
             order(ByteOrder.nativeOrder())

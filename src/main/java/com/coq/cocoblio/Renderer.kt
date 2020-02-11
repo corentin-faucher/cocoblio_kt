@@ -10,9 +10,9 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.*
 
-class CoqRenderer(private val coqActivity: CoqActivity,
-                        private val customVertShadResID: Int?,
-                        private val customFragShadResID: Int?) : GLSurfaceView.Renderer
+class Renderer(private val coqActivity: CoqActivity,
+               private val customVertShadResID: Int?,
+               private val customFragShadResID: Int?) : GLSurfaceView.Renderer
 {
     /** Les propriétés d'affichage d'un objet/instance: matrice du modèle, tile, couleur, flags... */
     class PerInstanceUniforms {
@@ -48,70 +48,53 @@ class CoqRenderer(private val coqActivity: CoqActivity,
         }
     }
 
-    /*-- ??? Peut-on le mettre dans Activity ??? --*/
-    // Le gestionnaire/contrôleur des actions
-//    private var ge: GameEngineBase? = null
-    private var eh: EventsHandler? = null
-    private var root: Node? = null
-
-    /*---------------------*/
-    /*-- Stuff OpenGL... --*/
-    // ID des variable de shaders...
-    private var programID: Int = -1
-    // ID des "per frame uniforms"
-    private var pfuProjectionID: Int = -1
-    private var pfuTimeID: Int = -1
-    // ID des "per instance uniforms"
-    private var piuModelID: Int = -1
-    private var piuTexIJID: Int = -1
-    private var piuColorID: Int = -1
-    private var piuEmphID: Int = -1
-    private var piuFlagsID: Int = -1
+    lateinit var gameEngine: GameEngineBase
+    var setForDrawing : (Node.() -> Surface?) = Node::defaultSetNodeForDrawing
 
     /*-- Gestion des events (de Activity) --*/
+    /*-- Semble superflu, mais doit être dans la thread OpenGL... ??--*/
     fun onKeyDown(key: KeyboardKey) {
-        eh?.keyDown(key)
+        gameEngine.keyDown(key)
     }
     fun onKeyUp(key: KeyboardKey) {
-        eh?.keyUp(key)
+        gameEngine.keyUp(key)
     }
-
     fun onConfigurationChanged() {
-        eh?.configurationChanged()
+        gameEngine.configurationChanged()
     }
-
-    fun onTouchUp(vit: Vector2?) {
-//        println("onTouchUp $vit")
-        eh?.letTouchDrag(vit)
+    fun onTouchUp(vitRawX: Float?, vitRawY: Float?) {
         touchDragStarted = false
+        vitRawX?.let { vx -> vitRawY?. let {vy ->
+            gameEngine.letTouchDrag(getPositionFrom(vx, vy, true))
+            return
+        }}
+        gameEngine.letTouchDrag(null)
     }
     private var touchDragStarted = false
-    fun onTouchDrag(posInit: Vector2, posNow: Vector2) {
-//        println("onTouchDrag $posInit, $posNow")
+    fun onTouchDrag(posInitX: Float, posInitY: Float, posNowX: Float, posNowY: Float) {
+        val posInit = getPositionFrom(posInitX, posInitY, true)
+        val posNow = getPositionFrom(posNowX, posNowY, true)
         if(!touchDragStarted) {
-            eh?.initTouchDrag(posInit)
+            gameEngine.initTouchDrag(posInit)
             touchDragStarted = true
         }
-        eh?.touchDrag(posNow)
+        gameEngine.touchDrag(posNow)
     }
-    fun onSingleTap(pos: Vector2) {
-//        println("onSingleTap $pos")
-        eh?.singleTap(pos)
+    fun onSingleTap(posX: Float, posY: Float) {
+        val pos = getPositionFrom(posX, posY, true)
+        gameEngine.singleTap(pos)
         touchDragStarted = false
     }
     fun onPause() {
-        eh?.appPaused()
+        gameEngine.appPaused()
     }
 
 
-
     override fun onDrawFrame(gl: GL10?) {
-        // 0. Update du temps.
+        // 1. Update du temps.
         GlobalChrono.update()
-        // 1. Mise à jour de la couleur de fond.
-        GLES20.glClearColor(smR.pos, smG.pos, smB.pos, 1.0f)
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-        // 2. Mise à jour de la matrice de projection
+
+        // 2. Matrice de projection et "vrai" cadre de la view.
         if (width > height) { // Landscape
             frameFullHeight = 2f / heightRatio.pos
             frameFullWidth = width / height * frameFullHeight
@@ -120,22 +103,29 @@ class CoqRenderer(private val coqActivity: CoqActivity,
             frameFullHeight = height / width * frameFullWidth
         }
         val projection = getPerspective(
-            0.1f, 50f, smCameraZ.pos,
+            0.1f, 50f, gameEngine.root.z.pos,
             frameFullWidth, frameFullHeight)
         GLES20.glUniformMatrix4fv(
             pfuProjectionID, 1,
             false, projection, 0)
+
         // 3. Mise à jour du temps des shaders
         if (shadersTime.elsapsedSec > 24f) {
             shadersTime.removeSec(24f)
         }
         GLES20.glUniform1f(pfuTimeID, shadersTime.elsapsedSec)
-        // 4. Action falcultative du gameEngine avec frameFullWidth à jour.
-        eh?.onDrawFrame()
-        // 5. Dessiner les noeuds
-        val sq = Squirrel(root ?: run { printerror("Rien à afficher."); return})
+
+        // 4. Action du game engine avant l'affichage
+        gameEngine.willDrawFrame(frameFullWidth, frameFullHeight)
+
+        // 5. Mise à jour de la couleur de fond.
+        GLES20.glClearColor(smR.pos, smG.pos, smB.pos, 1.0f)
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+
+        // 6. Boucle d'affichage
+        val sq = Squirrel(gameEngine.root)
         do {
-            sq.pos.setNodeForDrawing()?.draw()
+            sq.pos.setForDrawing()?.draw()
         } while (sq.goToNextToDisplay())
     }
     override fun onSurfaceChanged(gl: GL10?, newWidth: Int, newHeight: Int) {
@@ -143,24 +133,25 @@ class CoqRenderer(private val coqActivity: CoqActivity,
         height = newHeight.toFloat()
         width = newWidth.toFloat()
         val ratio = width / height
-        println("onSurfaceChanged portrait: $portrait")
-        portrait = ratio < 1f
+        val usableHeight: Float
+        val usableWidth: Float
 
-        if (portrait) {
+        if (height > width) {
             widthRatio.pos = bordRatio
             heightRatio.pos = bordRatio * min(1f, ratio / usableRatioMin)
-            frameUsableWidth = 2f
-            frameUsableHeight = 2f * (heightRatio.realPos / widthRatio.realPos) / ratio
+            usableWidth = 2f
+            usableHeight = 2f * (heightRatio.realPos / widthRatio.realPos) / ratio
         } else {
             heightRatio.pos = bordRatio
             widthRatio.pos = bordRatio * min(1f, usableRatioMax / ratio)
-            frameUsableHeight = 2f
-            frameUsableWidth = 2f * ratio * (widthRatio.realPos / heightRatio.realPos)
+            usableHeight = 2f
+            usableWidth = 2f * ratio * (widthRatio.realPos / heightRatio.realPos)
         }
-        println("calling viewReshape")
-        eh?.viewReshaped()
+
+        gameEngine.viewReshaped(usableWidth, usableHeight)
     }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        println("Renderer onSurfaceCreated")
         fun loadShader(type: Int, shaderResource: Int) : Int {
             val inputStream = coqActivity.resources.openRawResource(shaderResource)
             val shaderCode = inputStream.bufferedReader().use { it.readText() }
@@ -202,14 +193,23 @@ class CoqRenderer(private val coqActivity: CoqActivity,
         // 5. Init du temps des shaders.
         shadersTime.start()
 
-        // 6. Init de la structure/eventsHandler (i.e. gameengine)
-        if (eh == null) {
-            eh = coqActivity.getEventstHandler()
-        }
-        if (root == null) {
-            root = coqActivity.getStructureRoot()
-        }
+        // 6. Init du GameEngine...
+        println("init gameEngine")
+        gameEngine = coqActivity.getGameEngine()
+        println("fin de renderer onSurfaceCreated")
     }
+
+    fun initClearColor(r: Float, g: Float, b: Float) {
+        smR.set(r); smG.set(g); smB.set(b)
+    }
+    fun updateClearColor(r: Float, g: Float, b: Float) {
+        smR.pos = r; smG.pos = g; smB.pos = b
+    }
+    fun getPositionFrom(locationInWindowX: Float, locationInWindowY: Float,
+                        invertedY: Boolean) = Vector2(
+        (locationInWindowX / width - 0.5f) * frameFullWidth,
+        (if (invertedY) -1f else 1f) * (locationInWindowY / height - 0.5f) * frameFullHeight)
+
     /** Dessiner une surface */
     private fun Surface.draw() {
         // 1. Mise a jour de la mesh ?
@@ -236,67 +236,56 @@ class CoqRenderer(private val coqActivity: CoqActivity,
             GLES20.glDrawArrays(Mesh.currentPrimitiveType, 0, Mesh.currentVertexCount)
         }
     }
+
+    /*-- Private stuff --*/
+    private var width: Float = 1.0f // En pixels
+    private var height: Float = 1.0f
+    // Le vrai espace (toute la vue avec les bords),
+    // a priori, change à chaque frame.
+    // Le fullWidth/fullHeight de la root est changé en même temps.
+    private var frameFullWidth = 2f
+    private var frameFullHeight = 2f
+    private var widthRatio = SmoothPos(1f, 8f)
+    private var heightRatio = SmoothPos(1f, 8f)
+    private var smR = SmoothPos(0f, 8f)
+    private var smG = SmoothPos(0f, 8f)
+    private var smB = SmoothPos(0f, 8f)
+    private val shadersTime = Chrono()
     /** Les static / global access */
     companion object {
-        fun initClearColor(r: Float, g: Float, b: Float) {
-            smR.set(r); smG.set(g); smB.set(b)
-        }
-        fun updateClearColor(r: Float, g: Float, b: Float) {
-            smR.pos = r; smG.pos = g; smB.pos = b
-        }
-        fun getPositionFrom(locationInWindowX: Float, locationInWindowY: Float,
-                            invertedY: Boolean) = Vector2(
-            (locationInWindowX / width - 0.5f) * frameFullWidth,
-            (if (invertedY) -1f else 1f) * (locationInWindowY / height - 0.5f) * frameFullHeight)
-
-        var setNodeForDrawing : (Node.() -> Surface?) = Node::defaultSetNodeForDrawing
-        // Dimensions de la vue (global access)
-        var portrait: Boolean = false
-            private set
-        var width: Float = 1.0f // En pixels
-            private set
-        var height: Float = 1.0f
-            private set
-        var frameUsableWidth = 2f
-            private set
-        var frameUsableHeight = 2f
-            private set
-        var frameFullWidth = 2f
-            private set
-        var frameFullHeight = 2f
-            private set
         private const val usableRatioMin = 0.54f
         private const val usableRatioMax = 1.85f
-        var bordRatio = 0.95f
-        /** La position en z de la camera (libre d'accès) */
-        val smCameraZ = SmoothPos(2f, 5f)
-        val shadersTime = Chrono()
-        private var smR = SmoothPos(0f, 8f)
-        private var smG = SmoothPos(0f, 8f)
-        private var smB = SmoothPos(0f, 8f)
-        private var widthRatio = SmoothPos(1f, 8f)
-        private var heightRatio = SmoothPos(1f, 8f)
-
-        private var gameEngineCount = 0
+        private var bordRatio = 0.95f
     }
+
+    /*---------------------*/
+    /*-- Stuff OpenGL... --*/
+    // ID des variable de shaders...
+    private var programID: Int = -1
+    // ID des "per frame uniforms"
+    private var pfuProjectionID: Int = -1
+    private var pfuTimeID: Int = -1
+    // ID des "per instance uniforms"
+    private var piuModelID: Int = -1
+    private var piuTexIJID: Int = -1
+    private var piuColorID: Int = -1
+    private var piuEmphID: Int = -1
+    private var piuFlagsID: Int = -1
 }
 
 /** La fonction utilisé par défaut pour CoqRenderer.setNodeForDrawing.
  * Retourne la surface à afficher (le noeud présent si c'est une surface). */
 private fun Node.defaultSetNodeForDrawing() : Surface? {
-    // 1. Init de la matrice model avec le parent.
+    // 0.0 Prendre le model du parent.
     parent?.let {
         System.arraycopy(it.piu.model, 0, piu.model, 0, 16)
     } ?: run {
-        // Cas racine -> model est la caméra.
-        piu.model = getLookAt(
-            Vector3(0f, 0f, CoqRenderer.smCameraZ.pos),
-            Vector3(0f, 0f, 0f),
-            Vector3(0f, 1f, 0f)
-        )
+        // 0.1 Cas racine
+        (this as? RootNode)?.setModelAsCamera() ?: printerror("Root pas un RootNode.")
+        return null
     }
 
-    // 2. Cas branche
+    // 1. Cas branche
     if (firstChild != null) {
         piu.model.translate(x.pos, y.pos, z.pos)
         piu.model.scale(scaleX.pos, scaleY.pos, 1f)
@@ -318,10 +307,6 @@ private fun Node.defaultSetNodeForDrawing() : Surface? {
         piu.model.scale(width.pos * alpha, height.pos * alpha, 1f)
     } else {
         piu.model.scale(width.pos, height.pos, 1f)
-    }
-
-    if(mesh === Mesh.defaultFan) {
-        mesh.updateAsAFanWith(0.5f + 0.5f*sin(CoqRenderer.shadersTime.elsapsedSec))
     }
 
     return this

@@ -60,7 +60,7 @@ abstract class SmoothDimension : Cloneable {
     }
     /** move: place par rapport à realPos (i.e. un déplacement)
      * Pourrait être "setRelToRealPos"... */
-    fun move(shift: Float, fix: Boolean, setAsDef: Boolean) {
+    fun move(shift: Float, fix: Boolean = false, setAsDef: Boolean = true) {
         set(realPos + shift, fix, setAsDef)
     }
     fun fadeIn(delta: Float? = null) {
@@ -72,13 +72,13 @@ abstract class SmoothDimension : Cloneable {
     }
     /** Met à jour comme amortissement-critique
      * où lambda est le paramètre de l'exp. décroissante. */
-    fun updateLambda(lambda: Float) {
-        updateConstants(2.0f * lambda, lambda * lambda)
+    fun updateCurve(lambda: Float) {
+        updateCurve(2.0f * lambda, lambda * lambda)
     }
     /** Met à jour comme un systeme masse/ressort/amortisement. (m=1)
      * gamma : constante d'amortissement.
      * k : constante du ressort. */
-    fun updateConstants(gamma: Float, k: Float) {
+    fun updateCurve(gamma: Float, k: Float) {
         // 1. Enregistrer delta et pente avant de modifier la courbe.
         val deltaT = elapsedSec
         val slope = getSlope(deltaT)
@@ -260,6 +260,7 @@ open class SmoothAngle : SmoothDimension {
 
 class SmoothAngleWithDrift : SmoothAngle {
     var drift: Float = 0f
+        private set
 
     override var pos: Float
         get() {

@@ -68,9 +68,7 @@ fun <T: Node> T.alsoAddEdtStrWithFrame(id: Int, frameResID: Int = R.drawable.fra
  * L'option Node.showFrame doit être "true". */
 fun Node.tryToAddFrame() {
     if (!showFrame) return
-    Surface(this, R.drawable.test_frame, 0f, 0f, height.realPos,
-        0f, 0, Flag1.surfaceDontRespectRatio
-    ).also{it.width.set(width.realPos)}
+    TestFrame(this)
 }
 
 /** Aligner les descendants d'un noeud. Retourne le nombre de descendants traités. */
@@ -78,11 +76,16 @@ fun Node.alignTheChildren(alignOpt: Int, ratio: Float = 1f, spacingRef: Float = 
     var sq = Squirrel(this)
     if (!sq.goDownWithout(Flag1.hidden)) {
         printerror("pas de child.");return 0}
+    // 0. Les options...
+    val fix = (alignOpt and AlignOpt.fixPos != 0)
+    val horizontal = (alignOpt and AlignOpt.vertically == 0)
+    val setAsDef = (alignOpt and AlignOpt.setAsDefPos != 0)
+    val setSecondaryToDefPos = (alignOpt and AlignOpt.setSecondaryToDefPos != 0)
     // 1. Setter largeur/hauteur
     var w = 0f
     var h = 0f
     var n = 0
-    if (alignOpt and AlignOpt.vertically == 0) {
+    if (horizontal) {
         do {
             w += sq.pos.deltaX * 2f * spacingRef
             n += 1
@@ -103,7 +106,7 @@ fun Node.alignTheChildren(alignOpt: Int, ratio: Float = 1f, spacingRef: Float = 
     // 2. Ajuster l'espacement supplémentaire pour respecter le ratio
     var spacing = 0f
     if (alignOpt and AlignOpt.respectRatio != 0) {
-        if(alignOpt and AlignOpt.vertically == 0) {
+        if(horizontal) {
             if  (w/h < ratio) {
                 spacing = (ratio * h - w) / n.toFloat()
                 w = ratio * h
@@ -115,13 +118,7 @@ fun Node.alignTheChildren(alignOpt: Int, ratio: Float = 1f, spacingRef: Float = 
             }
         }
     }
-    // 3. Les options...
-    val fix = (alignOpt and AlignOpt.fixPos != 0)
-    val horizontal = (alignOpt and AlignOpt.vertically == 0)
-    val setAsDef = (alignOpt and AlignOpt.setAsDefPos != 0)
-    val setSecondaryToDefPos = (alignOpt and AlignOpt.setSecondaryToDefPos != 0)
     // 3. Setter les dims.
-
     if (alignOpt and AlignOpt.dontUpdateSizes == 0) {
         width.set(w, fix, setAsDef)
         height.set(h, fix, setAsDef)

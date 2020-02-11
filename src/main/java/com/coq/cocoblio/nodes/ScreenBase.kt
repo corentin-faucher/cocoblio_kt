@@ -1,6 +1,6 @@
 package com.coq.cocoblio.nodes
 
-import com.coq.cocoblio.CoqRenderer
+import com.coq.cocoblio.maths.printerror
 import kotlin.math.min
 
 /** Modèle pour les noeuds racine d'un screen.
@@ -23,8 +23,9 @@ abstract class ScreenBase(refNode: Node,
     /** En général un écran est constitué de deux "blocs"
      * alignés horizontalement ou verticalement en fonction de l'orientation de l'appareil. */
     private fun alignScreenElements(isOpening:  Boolean) {
+        val theParent = parent ?: run {printerror("Pas de parent."); return}
         if (!containsAFlag(Flag1.dontAlignScreenElements)) {
-            val ceiledScreenRatio = CoqRenderer.frameUsableWidth / CoqRenderer.frameUsableHeight
+            val ceiledScreenRatio = theParent.width.realPos / theParent.height.realPos
             var alignOpt = AlignOpt.respectRatio or AlignOpt.setSecondaryToDefPos
             if (ceiledScreenRatio < 1f)
                 alignOpt = alignOpt or AlignOpt.vertically
@@ -34,15 +35,15 @@ abstract class ScreenBase(refNode: Node,
             this.alignTheChildren(alignOpt, ceiledScreenRatio)
 
             val scale = min(
-                CoqRenderer.frameUsableWidth / width.realPos,
-                CoqRenderer.frameUsableHeight / height.realPos)
+                theParent.width.realPos/ width.realPos,
+                theParent.height.realPos / height.realPos)
             scaleX.set(scale, isOpening)
             scaleY.set(scale, isOpening)
         } else {
             scaleX.set(1f, isOpening)
             scaleY.set(1f, isOpening)
-            width.set(CoqRenderer.frameUsableWidth, isOpening)
-            height.set(CoqRenderer.frameUsableHeight, isOpening)
+            width.set(theParent.width.realPos, isOpening)
+            height.set(theParent.height.realPos, isOpening)
         }
     }
 }

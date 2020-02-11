@@ -5,7 +5,6 @@ package com.coq.cocoblio.nodes
 /*----------------------------------------------*/
 
 /** Les flags "de base" pour les noeuds. */
-@Suppress("unused")
 object Flag1 {
     const val show = 1L
     /** Noeud qui n'apparait pas quand on "open" */

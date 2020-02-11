@@ -8,36 +8,35 @@ import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.system.exitProcess
 
-interface EventsHandler {
-    fun singleTap(pos: Vector2)
-    fun initTouchDrag(posInit: Vector2) // touchDrag est exécuté tout de suite après.
-    fun touchDrag(posNow: Vector2)
-    fun letTouchDrag(vit: Vector2?)
-
-    fun keyDown(key: KeyboardKey)
-    fun keyUp(key: KeyboardKey)
-
-    fun onDrawFrame()
-    fun viewReshaped()
-    fun configurationChanged()
-    fun appPaused()
-}
-
-
 /** Le Game Engine contrôle les interactions entre les noeuds et gère les events.
  * (Structure + Gestion) */
-abstract class GameEngineBase : EventsHandler {
-    val root: Node = RootNode()
+abstract class GameEngineBase  {
+    val root: RootNode = RootNode()
     var activeScreen: ScreenBase? = null
         protected set
     var selectedNode: Node? = null
         protected set
     var changeScreenSoundID: Int? = null
 
-    override fun viewReshaped() {
-        println("viewReshape de GameEngineBase.")
+    abstract fun singleTap(pos: Vector2)
+    abstract fun initTouchDrag(posInit: Vector2) // touchDrag est exécuté tout de suite après.
+    abstract fun touchDrag(posNow: Vector2)
+    abstract fun letTouchDrag(vit: Vector2?)
+
+    abstract fun keyDown(key: KeyboardKey)
+    abstract fun keyUp(key: KeyboardKey)
+
+    open fun willDrawFrame(fullWidth: Float, fullHeight: Float) {
+        root.fullWidth = fullWidth
+        root.fullHeight = fullHeight
+    }
+    open fun viewReshaped(usableWidth: Float, usableHeight: Float) {
+        root.width.set(usableWidth)
+        root.height.set(usableHeight)
         root.reshapeBranch()
     }
+    abstract fun configurationChanged()
+    abstract fun appPaused()
 
     /** Ne fait rien, si on est déjà au bon endroit. */
     fun changeActiveScreen(newScreen: ScreenBase?) {
@@ -64,15 +63,5 @@ abstract class GameEngineBase : EventsHandler {
         activeScreen = newScreen
         newScreen.openBranch()
         changeScreenSoundID?.let{SoundManager.play(it, 0, 0.5f)}
-    }
-
-    private class RootNode : Node(null,
-        0f, 0f, 4f, 4f, 0f,
-        Flag1.exposed or Flag1.show or Flag1.branchToDisplay or
-                Flag1.selectableRoot or Flag1.reshapableRoot
-    ), Reshapable {
-        override fun reshape(): Boolean {
-            return true
-        }
     }
 }
