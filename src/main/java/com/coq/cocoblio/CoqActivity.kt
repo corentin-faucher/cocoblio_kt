@@ -35,8 +35,9 @@ abstract class CoqActivity(private val appThemeID: Int,
         view.preserveEGLContextOnPause = true
         renderer = Renderer(this, vertShaderID, fragShaderID)
         view.setRenderer(renderer)
-
+        
         setContentView(view)
+
 
         SoundManager.initWith(this)
     }
