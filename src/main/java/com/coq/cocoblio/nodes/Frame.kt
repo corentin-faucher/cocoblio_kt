@@ -1,6 +1,7 @@
 package com.coq.cocoblio.nodes
 
 import com.coq.cocoblio.*
+import com.coq.cocoblio.maths.printerror
 import kotlin.math.max
 
 /** Noeud racine servant de cadre à une surface.
@@ -9,7 +10,7 @@ import kotlin.math.max
 class Frame : Node {
     private val delta: Float
     private val lambda: Float
-    private val pngResID: Int
+    private var pngResID: Int
     private val isInside: Boolean
 
     constructor(refNode: Node?, isInside: Boolean = false,
@@ -37,7 +38,8 @@ class Frame : Node {
     /** Init ou met à jour un noeud frame
      * (Ajoute les descendants si besoin) */
     fun update(width: Float, height: Float, fix: Boolean) {
-        val refSurf = Surface(null, pngResID, 0f, 0f, delta, lambda)
+        val refSurf = Surface(null, pngResID, 0f, 0f,
+            delta, lambda, 0, Flag1.surfaceDontRespectRatio)
 
         val sq = Squirrel(this)
         val deltaX = if (isInside) max(width/2 - delta/2f, delta/2f) else width/2f + delta/2f
@@ -98,5 +100,16 @@ class Frame : Node {
             sq.pos.x.set(deltaX, fix, true)
             sq.pos.y.set(-deltaY, fix, true)
         }
+    }
+
+    fun updatePng(newPngID: Int) {
+        if (newPngID == pngResID) {
+            return
+        }
+        pngResID = newPngID
+        val sq = Squirrel(firstChild ?: run {printerror("Frame pas init."); return})
+        do {
+            (sq.pos as? Surface)?.updateForTexResID(pngResID)
+        } while (sq.goRight())
     }
 }

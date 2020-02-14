@@ -5,14 +5,22 @@ import com.coq.cocoblio.maths.Vector2
 import kotlin.math.max
 import kotlin.math.min
 
+abstract class SelectableNode(refNode: Node?,
+                              x: Float, y: Float, width: Float, height: Float,
+                              lambda: Float = 0f, flags: Long = 0
+) : Node(refNode, x, y, width, height, lambda, flags or Flag1.selectable) {
+    init {
+        addRootFlag(Flag1.selectableRoot)
+    }
+}
+
 /** Classe de base des boutons.
  * Par défaut un bouton n'est qu'un carré sans surface.
- * Un bouton est un SearchableNode avec l'interface Selectionable/Actionable. */
+ * Un bouton est un SelectableNode qui est Actionable. */
 abstract class Button(refNode: Node?,
     x: Float, y: Float, height: Float,
     lambda: Float = 0f, flags: Long = 0
-) : SearchableNode(refNode, Flag1.selectableRoot, Flag1.selectable,
-    x, y, height, height, lambda, flags), Actionable
+) : SelectableNode(refNode, x, y, height, height, lambda, flags), Actionable
 
 
 /** Classe de base des boutons de type "on/off".

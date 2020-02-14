@@ -218,7 +218,7 @@ abstract class SmoothDimension : Cloneable {
     }
 
     companion object {
-        var defaultFadeDelta = 2.2f
+        var defaultFadeDelta = 3f
     }
 }
 

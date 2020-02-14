@@ -9,13 +9,19 @@ import kotlin.math.abs
 /*-- Quelques extensions utiles. --------*/
 /*---------------------------------------*/
 
+/** Extension/wrapper pratique pour ajouter une surface à un noeud. */
+fun Node.addSurface(pngResID: Int, x: Float, y: Float, height: Float,
+                    lambda: Float = 0f, i: Int = 0, flags: Long = 0) {
+    Surface(this, pngResID, x, y, height, lambda, i, flags)
+}
+
 /** Ajout d'un frame et string à un noeud.
  * La hauteur devient 1 et ses scales deviennent sa hauteur.
  * (Pour avoir les objets (label...) relatif au noeud.)
  * Delta est un pourcentage de la hauteur. */
-fun <T: Node> T.alsoAddLocStrWithFrame(id: Int, frameResID: Int = R.drawable.frame_mocha,
-                                       delta: Float = 0.40f, ceiledWidth: Float? = null) : T {
-    if (firstChild != null) { printerror("A déjà quelque chose."); return this}
+fun Node.fillWithFrameAndLocStr(locStrId: Int, frameResID: Int = R.drawable.frame_mocha,
+                                       delta: Float = 0.40f, ceiledWidth: Float? = null) {
+    if (firstChild != null) { printerror("A déjà quelque chose."); return}
 
     scaleX.set(height.realPos)
     scaleY.set(height.realPos)
@@ -24,9 +30,19 @@ fun <T: Node> T.alsoAddLocStrWithFrame(id: Int, frameResID: Int = R.drawable.fra
     height.set(1f)
     Frame(this, false, delta,
         0f, frameResID, Flag1.giveSizesToParent)
-    LocStrSurf(this, id, 0f, 0f, 1f,
+    LocStrSurf(this, locStrId, 0f, 0f, 1f,
         0f, Flag1.giveSizesToBigBroFrame, scaleCeiledWidth)
-    return this
+}
+
+/** Ajoute la structure root->{frame, locStrSurf} au noeud présent.
+ * (Bref, ajoute un noeud en (x,y) init avec addFrameAndLocStr.) */
+fun Node.addFramedLocStr(locStrId: Int, framePngId: Int,
+                         x: Float, y: Float, height: Float, lambda: Float = 0f,
+                         flags: Long = 0, ceiledWidth: Float? = null, delta: Float = 0.4f) {
+    Node(this, x, y, ceiledWidth ?: height, height, lambda, flags).apply {
+        fillWithFrameAndLocStr(locStrId, framePngId, delta, ceiledWidth)
+    }
+
 }
 
 fun <T: Node> T.alsoAddCstStrWithFrame(str: String, frameResID: Int = R.drawable.frame_mocha,

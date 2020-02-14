@@ -84,9 +84,7 @@ class Texture {
 
         bitmap.recycle()
     }
-    private fun initAsPng() {
 
-    }
     enum class TestAnimal {
         bear,
         bee,
@@ -144,8 +142,8 @@ class Texture {
             initPngTex(R.drawable.sparkle_stars, 3,2, context)
             initPngTex(R.drawable.switch_back, 1,1, context)
             initPngTex(R.drawable.switch_front, 1,1, context)
-            initPngTex(R.drawable.test_frame, 1, 1, context)
-            initPngTex(R.drawable.the_cat, 1,1, context)
+            initPngTex(R.drawable.test_frame, 1, 1, context, false)
+            initPngTex(R.drawable.the_cat, 1,1, context, false)
         }
         /** Tout effacer (à caller lorsque l'activité est détruit (onDestroy) */
         /*fun clear() {
@@ -169,7 +167,7 @@ class Texture {
             println("End cleaning Texture")
         } */
         /*-- Options sur les textures --*/
-        fun setGLFilter(asLinear: Boolean) {
+        fun setDefaultGLFilter(asLinear: Boolean) {
             glFilter = if(asLinear) GLES20.GL_LINEAR else GLES20.GL_NEAREST
         }
         private var glFilter = GLES20.GL_LINEAR
@@ -182,7 +180,7 @@ class Texture {
 
         /*-- Gestion des pngs --*/
         /** Init d'un png quelconque (image dans un projet spécifique) */
-        fun initPngTex(resID: Int, m: Int, n: Int, context: Context) {
+        fun initPngTex(resID: Int, m: Int, n: Int, context: Context, asLinear: Boolean? = null) {
             val newTex: Texture = pngList[resID]?.also{ printerror("$resID déjà init ?") }
                 ?: Texture()
             newTex.m = m
@@ -206,6 +204,7 @@ class Texture {
                 resID, options
             )
 
+            val glFilter = asLinear?.let {if(it) GLES20.GL_LINEAR else GLES20.GL_NEAREST } ?: glFilter
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureIDarrayTmp[0])
             GLES20.glTexParameteri(
                 GLES20.GL_TEXTURE_2D,

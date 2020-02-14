@@ -15,13 +15,12 @@ import kotlin.math.*
  * checkItem : Methode/ext de noeud pour mettre à jour les noeud-boutons.
  * getIndicesRangeAtOpening : exécuter à l'ouverture du sliding menu et retourne le range attendu des items.
  * getPosIndex : la position de l'indice où on est centré à l'ouverture. */
-class SlidingMenu(refNode: Node, private val nDisplayed: Int,
+open class SlidingMenu(refNode: Node, private val nDisplayed: Int,
                   x: Float, y: Float, width: Float, height: Float, private val spacing: Float,
                   val addNewItem: ((menu: Node, index: Int) -> Unit),
                   val getIndicesRangeAtOpening: (() -> IntRange),
                   val getPosIndex: (() -> Int)
-) : SearchableNode(refNode, Flag1.selectableRoot, Flag1.selectable,
-    x, y, width, height, 10f), Draggable, Openable {
+) : SelectableNode(refNode, x, y, width, height, 10f), Draggable, Openable {
     private var menuGrabPosY: Float? = null
     private var indicesRange: IntRange = IntRange.EMPTY
     private val menu: Node // Le menu qui "glisse" sur le noeud racine.
@@ -36,6 +35,7 @@ class SlidingMenu(refNode: Node, private val nDisplayed: Int,
 
     init {
         tryToAddFrame()
+        @Suppress("LeakingThis")
         menu = Node(this, 0f, 0f, width, height, 20f)
     }
 

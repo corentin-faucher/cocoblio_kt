@@ -10,7 +10,7 @@ import com.coq.cocoblio.maths.Vector2
 import com.coq.cocoblio.maths.printerror
 
 /** Ajouter des flags à une branche (noeud et descendents s'il y en a). */
-fun Node.addBranchFlags(flags: Long) {
+fun Node.addBranchFlags_(flags: Long) {
     addFlags(flags)
     val sq = Squirrel(firstChild ?: return)
     while (true) {
@@ -28,7 +28,7 @@ fun Node.addBranchFlags(flags: Long) {
 }
 
 /** Retirer des flags à toute la branche (noeud et descendents s'il y en a). */
-fun Node.removeBranchFlags(flags: Long) {
+fun Node.removeBranchFlags_(flags: Long) {
     removeFlags(flags)
     val sq = Squirrel(firstChild ?: return)
     while (true) {

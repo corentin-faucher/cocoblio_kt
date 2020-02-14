@@ -57,7 +57,8 @@ class NumberNode : Node {
     }
 
     /** Init ou met à jour un noeud NumberNode
-     * (Ajoute les descendants si besoin) */
+     * (Ajoute les descendants si besoin)
+     * update openBranch s'il y a le flag "show". */
     fun update(newNumber: Int, newUnitDecimal: Int? = null, newSeparator: Digits? = null) {
         number = newNumber
         newUnitDecimal?.let { unitDecimal = it }

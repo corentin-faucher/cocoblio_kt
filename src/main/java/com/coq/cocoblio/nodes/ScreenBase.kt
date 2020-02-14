@@ -9,17 +9,19 @@ import kotlin.math.min
 abstract class ScreenBase(refNode: Node,
                            val escapeAction: (() -> Unit)?, val enterAction: (() -> Unit)?,
                            flags: Long = 0
-) : SearchableNode(refNode, Flag1.reshapableRoot, 0L,
-    0f, 0f, 4f, 4f, 0f, flags), Reshapable, Openable {
+) : Node(refNode,
+    0f, 0f, 4f, 4f, 0f, flags
+), Reshapable, Openable {
+    init {
+        refNode.addFlags(Flag1.reshapableRoot)
+    }
     override fun open() {
         alignScreenElements(true)
     }
-
     override fun reshape() : Boolean {
         alignScreenElements(false)
         return true
     }
-
     /** En général un écran est constitué de deux "blocs"
      * alignés horizontalement ou verticalement en fonction de l'orientation de l'appareil. */
     private fun alignScreenElements(isOpening:  Boolean) {

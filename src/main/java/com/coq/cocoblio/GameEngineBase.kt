@@ -42,7 +42,7 @@ abstract class GameEngineBase  {
     fun changeActiveScreen(newScreen: ScreenBase?) {
         // 0. Cas "réouverture" de l'écran. ** Utile, superflu ?? **
         if(activeScreen === newScreen) {
-            newScreen?.closeBranch()
+            //newScreen?.closeBranch()
             newScreen?.openBranch()
             return
         }
