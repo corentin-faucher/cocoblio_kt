@@ -151,7 +151,6 @@ class Renderer(private val coqActivity: CoqActivity,
         gameEngine.viewReshaped(usableWidth, usableHeight)
     }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        println("Renderer onSurfaceCreated")
         fun loadShader(type: Int, shaderResource: Int) : Int {
             val inputStream = coqActivity.resources.openRawResource(shaderResource)
             val shaderCode = inputStream.bufferedReader().use { it.readText() }
@@ -194,9 +193,7 @@ class Renderer(private val coqActivity: CoqActivity,
         shadersTime.start()
 
         // 6. Init du GameEngine...
-        println("init gameEngine")
         gameEngine = coqActivity.getGameEngine()
-        println("fin de renderer onSurfaceCreated")
     }
 
     fun initClearColor(r: Float, g: Float, b: Float) {

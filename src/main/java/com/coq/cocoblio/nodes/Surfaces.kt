@@ -78,7 +78,7 @@ open class Surface : Node {
     /** S'il n'y a pas le flag surfaceDontRespectRatio, la largeur est ajustée.
      * Sinon, on ne fait que vérifier le frame voisin
      * et le parent. */
-    protected fun updateRatio() {
+    fun updateRatio() {
         if (!containsAFlag(Flag1.surfaceDontRespectRatio)) {
             if (containsAFlag(Flag1.surfaceWithCeiledWidth)) {
                 width.set(

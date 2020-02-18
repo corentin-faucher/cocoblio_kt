@@ -15,7 +15,7 @@ fun Node.addSurface(pngResID: Int, x: Float, y: Float, height: Float,
     Surface(this, pngResID, x, y, height, lambda, i, flags)
 }
 
-/** Ajout d'un frame et string à un noeud.
+/** Ajout d'un frame et string à un noeud. (e.g. remplir un bouton.)
  * La hauteur devient 1 et ses scales deviennent sa hauteur.
  * (Pour avoir les objets (label...) relatif au noeud.)
  * Delta est un pourcentage de la hauteur. */
@@ -33,6 +33,27 @@ fun Node.fillWithFrameAndLocStr(locStrId: Int, frameResID: Int = R.drawable.fram
     LocStrSurf(this, locStrId, 0f, 0f, 1f,
         0f, Flag1.giveSizesToBigBroFrame, scaleCeiledWidth)
 }
+
+/** Ajout d'un surface à un noeud. (e.g. remplir un bouton.) */
+fun Node.fillWithSurface(pngResID: Int) {
+    scaleX.set(height.realPos)
+    scaleY.set(height.realPos)
+    width.set(1f)
+    height.set(1f)
+    Surface(this, pngResID, 0f, 0f, 1f, 0f, 0,
+        Flag1.giveSizesToParent)
+}
+/** Ajout d'un surface à un noeud. (e.g. remplir un bouton.) */
+fun Node.fillWithLanguageSurface(pngResID: Int) {
+    scaleX.set(height.realPos)
+    scaleY.set(height.realPos)
+    width.set(1f)
+    height.set(1f)
+    LanguageSurface(this, pngResID,
+        0f, 0f, 1f, 0f,
+        Flag1.giveSizesToParent)
+}
+
 
 /** Ajoute la structure root->{frame, locStrSurf} au noeud présent.
  * (Bref, ajoute un noeud en (x,y) init avec addFrameAndLocStr.) */
