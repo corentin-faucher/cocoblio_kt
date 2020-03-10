@@ -18,7 +18,7 @@ open class RootNode : Node, Reshapable {
 
     constructor(refNode: Node? = null) : super(refNode, 0f, 0f, 4f, 4f, 10f,
         Flag1.exposed or Flag1.show or Flag1.branchToDisplay or
-                Flag1.selectableRoot or Flag1.reshapableRoot) {
+                Flag1.selectableRoot) {
         z.set(4f)
     }
 

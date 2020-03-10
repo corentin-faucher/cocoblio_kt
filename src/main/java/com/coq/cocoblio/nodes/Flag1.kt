@@ -12,10 +12,10 @@ object Flag1 {
     /** Noeud qui ne disparait pas quand on "close" */
     const val exposed = 4L
     /** Pour les noeuds selectionable/activable (les boutons) */
-    const val selectableRoot = 1L.shl(4)
-    const val selectable = 1L.shl(5)
+    internal const val selectableRoot = 1L.shl(4)
+    internal const val selectable = 1L.shl(5)
     /** Pour les noeuds devant être ajustés après reshape de l'écran. */
-    const val reshapableRoot = 1L.shl(6)
+//    const val reshapableRoot = 1L.shl(6)
 //    const val reshapable = 1L.shl(7) // Superflu (voir reshapeBranch)
     /** Noeud qui apparaît en grossisant. */
     const val poping = 1L.shl(8)

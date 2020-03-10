@@ -5,14 +5,6 @@ import com.coq.cocoblio.maths.Vector2
 import kotlin.math.max
 import kotlin.math.min
 
-abstract class SelectableNode(refNode: Node?,
-                              x: Float, y: Float, width: Float, height: Float,
-                              lambda: Float = 0f, flags: Long = 0
-) : Node(refNode, x, y, width, height, lambda, flags or Flag1.selectable) {
-    init {
-        addRootFlag(Flag1.selectableRoot)
-    }
-}
 
 /** Classe de base des boutons.
  * Par défaut un bouton n'est qu'un carré sans surface.
@@ -20,7 +12,13 @@ abstract class SelectableNode(refNode: Node?,
 abstract class Button(refNode: Node?,
     x: Float, y: Float, height: Float,
     lambda: Float = 0f, flags: Long = 0
-) : SelectableNode(refNode, x, y, height, height, lambda, flags), Actionable
+) : Node(refNode, x, y, height, height, lambda, flags
+), Actionable
+{
+    init {
+        makeSelectable()
+    }
+}
 
 
 /** Classe de base des boutons de type "on/off".
@@ -28,11 +26,14 @@ abstract class Button(refNode: Node?,
 @Suppress("LeakingThis")
 abstract class SwitchButton(refNode: Node?, var isOn: Boolean,
                             x: Float, y: Float, height: Float, lambda: Float = 0f, flags: Long = 0
-) : Button(refNode, x, y, height, lambda, flags), Draggable {
+) : Node(refNode, x, y, height, height, lambda, flags
+), Actionable, Draggable
+{
     private val back: Surface
     private val nub: Surface
 
     init {
+        makeSelectable()
         scaleX.set(height)
         scaleY.set(height)
         this.height.set(1f)

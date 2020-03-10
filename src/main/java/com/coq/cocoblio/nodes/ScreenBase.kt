@@ -12,9 +12,6 @@ abstract class ScreenBase(refNode: Node,
 ) : Node(refNode,
     0f, 0f, 4f, 4f, 0f, flags
 ), Reshapable, Openable {
-    init {
-        refNode.addFlags(Flag1.reshapableRoot)
-    }
     override fun open() {
         alignScreenElements(true)
     }

@@ -10,7 +10,7 @@ import com.coq.cocoblio.maths.Vector2
 import com.coq.cocoblio.maths.printerror
 
 /** Ajouter des flags à une branche (noeud et descendents s'il y en a). */
-fun Node.addBranchFlags_(flags: Long) {
+fun Node.addBranchFlags(flags: Long) {
     addFlags(flags)
     val sq = Squirrel(firstChild ?: return)
     while (true) {
@@ -28,7 +28,7 @@ fun Node.addBranchFlags_(flags: Long) {
 }
 
 /** Retirer des flags à toute la branche (noeud et descendents s'il y en a). */
-fun Node.removeBranchFlags_(flags: Long) {
+fun Node.removeBranchFlags(flags: Long) {
     removeFlags(flags)
     val sq = Squirrel(firstChild ?: return)
     while (true) {
@@ -85,6 +85,12 @@ fun Node.addRootFlag(flag: Long) {
             sq.pos.addFlags(flag)
         }
     } while (sq.goUp())
+}
+
+/** Flag le noeud comme "selectable" et trace sont chemin dans l'arbre pour être retrouvable. */
+fun Node.makeSelectable() {
+    addRootFlag(Flag1.selectableRoot)
+    addFlags(Flag1.selectable)
 }
 
 /**  Pour chaque noeud :
@@ -146,14 +152,14 @@ fun Node.reshapeBranch() {
         return
     }
     var needToreshapeChildren: Boolean = (this as? Reshapable)?.reshape() ?: false
-    if (!containsAFlag(Flag1.reshapableRoot) || !needToreshapeChildren) {
+    if (!needToreshapeChildren) { // !containsAFlag(Flag1.reshapableRoot)
         return
     }
     val sq = Squirrel(firstChild ?: return)
     while (true) {
         if (sq.pos.containsAFlag(Flag1.show)) {
             needToreshapeChildren = (sq.pos as? Reshapable)?.reshape() ?: false
-            if (sq.pos.containsAFlag(Flag1.reshapableRoot) && needToreshapeChildren) {
+            if (needToreshapeChildren) { // sq.pos.containsAFlag(Flag1.reshapableRoot)
                 if (sq.goDown()) {
                     continue
                 }

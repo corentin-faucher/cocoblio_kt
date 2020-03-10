@@ -20,7 +20,9 @@ open class SlidingMenu(refNode: Node, private val nDisplayed: Int,
                   val addNewItem: ((menu: Node, index: Int) -> Unit),
                   val getIndicesRangeAtOpening: (() -> IntRange),
                   val getPosIndex: (() -> Int)
-) : SelectableNode(refNode, x, y, width, height, 10f), Draggable, Openable {
+) : Node(refNode, x, y, width, height, 10f
+), Draggable, Openable
+{
     private var menuGrabPosY: Float? = null
     private var indicesRange: IntRange = IntRange.EMPTY
     private val menu: Node // Le menu qui "glisse" sur le noeud racine.
@@ -34,6 +36,7 @@ open class SlidingMenu(refNode: Node, private val nDisplayed: Int,
         get() = height.realPos / nDisplayed
 
     init {
+        makeSelectable()
         tryToAddFrame()
         @Suppress("LeakingThis")
         menu = Node(this, 0f, 0f, width, height, 20f)
