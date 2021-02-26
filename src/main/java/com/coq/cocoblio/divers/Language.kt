@@ -1,6 +1,6 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate")
 
-package com.coq.cocoblio
+package com.coq.cocoblio.divers
 
 enum class Language(val iso: String) {
     French("fr"),

@@ -1,50 +1,34 @@
+@file:Suppress("unused", "MemberVisibilityCanBePrivate")
+
 package com.coq.cocoblio.nodes
 
-import com.coq.cocoblio.Language
-import com.coq.cocoblio.Mesh
 import com.coq.cocoblio.R
+import com.coq.cocoblio.divers.Language
+import com.coq.cocoblio.divers.printdebug
+import com.coq.cocoblio.graphs.Mesh
 import com.coq.cocoblio.maths.SmTrans
-import com.coq.cocoblio.Texture
-import com.coq.cocoblio.maths.printerror
+import com.coq.cocoblio.graphs.Texture
+import com.coq.cocoblio.divers.printerror
+import com.coq.cocoblio.graphs.TextureType
 import kotlin.math.min
 
 /** Un noeud "surface". Noeud qui est affiché. Possède une texture (image png par exemple)
  * et une mesh (sprite par défaut). */
 open class Surface : Node {
     var tex: Texture
-    val mesh: Mesh
+    var mesh: Mesh
     val trShow: SmTrans
 
-    /** Init comme une surface ordinaire (png) avec resource id. */
-    constructor(refNode: Node?, pngResID: Int,
-                x: Float, y: Float, height: Float, lambda: Float = 0f,
-                i: Int = 0, flags: Long = 0,
-                asParent: Boolean = true, asElderBigbro: Boolean = false,
-                mesh: Mesh = Mesh.defaultSprite
-    ) : super(refNode, x, y, height, height, lambda, flags, asParent, asElderBigbro) {
-        this.tex = Texture.getPngTex(pngResID)
-        this.mesh = mesh
-        trShow = SmTrans()
-
-        updateTile(i, 0)
-        updateRatio()
-    }
     /** Init comme une surface ordinaire avec texture directement. */
     protected constructor(refNode: Node?, tex: Texture,
-                          x: Float, y: Float, height: Float, lambda: Float = 0f,
-                          i: Int = 0, flags: Long = 0, ceiledWidth: Float? = null,
-                          asParent: Boolean = true, asElderBigbro: Boolean = false,
-                          mesh: Mesh = Mesh.defaultSprite
-    ) : super(refNode, x, y, ceiledWidth ?: height, height, lambda, flags, asParent, asElderBigbro) {
+                          x: Float, y: Float, height: Float,
+                          lambda: Float = 0f, flags: Long = 0,
+                          mesh: Mesh = Mesh.defaultSprite,
+                          asParent: Boolean = true, asElderBigbro: Boolean = false
+    ) : super(refNode, x, y, height, height, lambda, flags, asParent, asElderBigbro) {
         this.tex = tex
         this.mesh = mesh
         trShow = SmTrans()
-        ceiledWidth?.let {
-            addFlags(Flag1.surfaceWithCeiledWidth)
-        }
-
-        updateTile(i, 0)
-        updateRatio()
     }
 
     /** Constructeur de copie. */
@@ -58,10 +42,130 @@ open class Surface : Node {
     override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
             = Surface(refNode, this, asParent, asElderBigbro)
 
-    fun updateForTexResID(newTexResID: Int) {
-        this.tex = Texture.getPngTex(newTexResID)
-        updateRatio()
+    /** S'il n'y a pas le flag surfaceDontRespectRatio, la largeur est ajustée.
+     * Sinon, on ne fait que vérifier le frame voisin
+     * et le parent. */
+    fun updateRatio(fix: Boolean) {
+        if (!containsAFlag(Flag1.surfaceDontRespectRatio)) {
+            if (containsAFlag(Flag1.surfaceWithCeiledWidth)) {
+                width.set(
+                    min(height.realPos * tex.ratio, width.defPos),
+                    fix = fix, setAsDef = false)
+            } else {
+                width.set(height.realPos * tex.ratio,
+                    fix = fix, setAsDef = true)
+            }
+        }
+        (bigBro as? Frame)?.let { frame ->
+            if (containsAFlag(Flag1.giveSizesToBigBroFrame))
+                frame.update(width.realPos, height.realPos, fix)
+        }
+        parent?.let{ parent ->
+            if (containsAFlag(Flag1.giveSizesToParent)) {
+                parent.width.set(width.realPos)
+                parent.height.set(height.realPos)
+            }
+        }
     }
+
+    override fun isDisplayActive() : Boolean {
+        return trShow.isActive
+    }
+}
+
+class StringSurface: Surface
+{
+    constructor(refNode: Node?, strTex: Texture,
+                x: Float, y: Float, height: Float,
+                lambda: Float, flags: Long = 0, ceiledWidth: Float? = null,
+                asParent: Boolean = true, asElderBigbro: Boolean = false
+    ) : super(refNode, strTex, x, y, height, lambda, flags, Mesh.defaultSprite,
+        asParent, asElderBigbro)
+    {
+        width.set(ceiledWidth ?: height)
+        if(strTex.type == TextureType.Png) {
+            printerror("Pas une texture de string.")
+            tex = Texture.getConstantString("?")
+        }
+        if(ceiledWidth != null) {
+            addFlags(Flag1.surfaceWithCeiledWidth)
+        }
+        piu.color = floatArrayOf(0f, 0f, 0f, 1f)  // (Text noir par défaut.)
+    }
+    /** "Convenience init" pour string constante */
+    constructor(refNode: Node?, cstString: String,
+                x: Float, y: Float, height: Float,
+                lambda: Float = 0f, flags: Long = 0, ceiledWidth: Float? = null
+    ) : this(refNode, Texture.getConstantString(cstString),
+        x, y, height, lambda, flags, ceiledWidth)
+
+    constructor(refNode: Node?, locResId: Int,
+                x: Float, y: Float, height: Float,
+                lambda: Float = 0f, flags: Long = 0, ceiledWidth: Float? = null
+    ) : this(refNode, Texture.getLocalizedString(locResId),
+            x, y, height, lambda, flags, ceiledWidth)
+
+    /** Copie... */
+    private constructor(refNode: Node?, toCloneNode: StringSurface,
+                        asParent: Boolean, asElderBigbro: Boolean
+    ) : super(refNode, toCloneNode, asParent, asElderBigbro)
+    override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
+            = StringSurface(refNode, this, asParent, asElderBigbro)
+
+    override fun open() {
+        updateRatio(true)
+        super.open()
+    }
+
+    fun updateTexture(newTexture: Texture) {
+        if (newTexture.type == TextureType.Png) {
+            printerror("Not a string texture.")
+            return
+        }
+        tex = newTexture
+    }
+    /** "Convenience function": Ne change pas la texture.
+     *  Ne fait que mettre à jour la string de la texture. */
+    fun updateAsMutableString(newString: String) {
+        if(tex.type != TextureType.MutableString) {
+            printerror("Not a mutable string texture.")
+            return
+        }
+        tex.updateAsMutableString(newString)
+    }
+    /** "Convenience function": Remplace la texture actuel pour
+     * une texture de string constant (non mutable). */
+    fun updateTextureToConstantString(newString: String) {
+        tex = Texture.getConstantString(newString)
+    }
+}
+
+class TiledSurface: Surface {
+    constructor(refNode: Node?, pngTex: Texture,
+                x: Float, y: Float, height: Float,
+                lambda: Float = 0f, i: Int = 0, flags: Long = 0,
+                asParent: Boolean = true, asElderBigbro: Boolean = false
+    ) : super(refNode, pngTex,
+            x, y, height, lambda, flags, Mesh.defaultSprite,
+            asParent, asElderBigbro)
+    {
+        updateRatio(true)
+        updateTile(i, 0)
+    }
+    /** Conveniance init */
+    constructor(refNode: Node?, pngResId: Int,
+                x: Float, y: Float, height: Float,
+                lambda: Float = 0f, i: Int = 0, flags: Long = 0,
+                asParent: Boolean = true, asElderBigbro: Boolean = false
+    ) : this(refNode, Texture.getPng(pngResId),
+        x, y, height, lambda, i, flags, asParent, asElderBigbro)
+    /** Copie... */
+    private constructor(refNode: Node?, toCloneNode: TiledSurface,
+                        asParent: Boolean, asElderBigbro: Boolean
+    ) : super(refNode, toCloneNode, asParent, asElderBigbro)
+    override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
+            = TiledSurface(refNode, this, asParent, asElderBigbro)
+
     /** Si i > m -> va sur les lignes suivantes. */
     fun updateTile(i: Int, j: Int) {
         piu.i = (i % tex.m).toFloat()
@@ -75,161 +179,82 @@ open class Surface : Node {
     fun updateTileJ(index: Int) {
         piu.j = (index % tex.n).toFloat()
     }
-    /** S'il n'y a pas le flag surfaceDontRespectRatio, la largeur est ajustée.
-     * Sinon, on ne fait que vérifier le frame voisin
-     * et le parent. */
-    fun updateRatio() {
-        if (!containsAFlag(Flag1.surfaceDontRespectRatio)) {
-            if (containsAFlag(Flag1.surfaceWithCeiledWidth)) {
-                width.set(
-                    min(height.realPos * tex.ratio, width.defPos),
-                    fix = true, setAsDef = false)
-            } else {
-                width.set(height.realPos * tex.ratio,
-                    fix = true, setAsDef = true)
-            }
+
+    /** Ne change que la texture (pas de updateRatio). */
+    fun updateTexture(newTexture: Texture) {
+        if(newTexture.type != TextureType.Png) {
+            printerror("Not a png texture.")
+            return
         }
-        (bigBro as? Frame)?.let { frame ->
-            if (containsAFlag(Flag1.giveSizesToBigBroFrame))
-                frame.update(width.realPos, height.realPos, true)
-        }
-        parent?.let{ parent ->
-            if (containsAFlag(Flag1.giveSizesToParent)) {
-                parent.width.set(width.realPos)
-                parent.height.set(height.realPos)
-            }
-        }
+        tex = newTexture
     }
 }
 
+
+
 /** LanguageSurface : cas particulier de Surface. La tile est fonction de la langue. */
-open class LanguageSurface : Surface, Openable {
-    override fun open() {
-        updateTile(Language.currentLanguageID, 0)
+open class LanguageSurface : Surface {
+    constructor(refNode: Node?, pngResId: Int,
+                x: Float, y: Float, height: Float,
+                lambda: Float, flags: Long = 0,
+                asParent: Boolean = true, asElderBigbro: Boolean = false
+    ) : super(refNode, Texture.getPng(pngResId), x, y, height, lambda, flags, Mesh.defaultSprite,
+        asParent, asElderBigbro)
+    {
+        updateRatio(true)
     }
 
-    /** Init comme une surface ordinaire (png) avec resource id. */
-    constructor(refNode: Node?, texResID: Int,
-                x: Float, y: Float, height: Float, lambda: Float = 0f,
-                flags: Long = 0,
-                asParent: Boolean = true, asElderBigbro: Boolean = false,
-                mesh: Mesh = Mesh.defaultSprite
-    ) : super(refNode, texResID, x, y, height, lambda,
-        Language.currentLanguageID, flags, asParent, asElderBigbro, mesh)
-
-    /** Constructeur de copie. */
-    constructor(refNode: Node?, toCloneNode: LanguageSurface,
-                asParent: Boolean = true, asElderBigbro: Boolean = false
+    /** Copie... */
+    private constructor(refNode: Node?, toCloneNode: LanguageSurface,
+                        asParent: Boolean, asElderBigbro: Boolean
     ) : super(refNode, toCloneNode, asParent, asElderBigbro)
     override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
             = LanguageSurface(refNode, this, asParent, asElderBigbro)
+
+    override fun open() {
+        super.open()
+        val i = Language.currentLanguageID
+        piu.i = (i % tex.m).toFloat()
+        piu.j = ((i / tex.m) % tex.n).toFloat()
+    }
+
+    /** Ne change que la texture (pas de updateRatio). */
+    fun updateTexture(newTexture: Texture) {
+        if(newTexture.type != TextureType.Png) {
+            printerror("Not a png texture.")
+            return
+        }
+        tex = newTexture
+    }
 }
 
 @Suppress("ConvertSecondaryConstructorToPrimary")
-class TestFrame : Surface, Reshapable, Openable {
-    constructor(refNode: Node) : super(refNode, R.drawable.test_frame,
+class TestFrame : Surface {
+    constructor(refNode: Node) : super(refNode, Texture.getPng(R.drawable.test_frame),
         0f, 0f, refNode.height.realPos, 10f,
-        0, Flag1.surfaceDontRespectRatio) {
+        Flag1.surfaceDontRespectRatio or Flag1.notToAlign)
+    {
         width.set(refNode.width.realPos)
     }
+    /** Copie... */
+    private constructor(refNode: Node?, toCloneNode: TestFrame,
+                        asParent: Boolean, asElderBigbro: Boolean
+    ) : super(refNode, toCloneNode, asParent, asElderBigbro)
+    override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
+            = TestFrame(refNode, this, asParent, asElderBigbro)
+
     override fun open() {
-        val theParent = parent ?: run{ printerror("Pas de parent."); return}
-        height.pos = theParent.height.realPos
-        width.pos = theParent.width.realPos
+        parent?.let { theParent ->
+            height.pos = theParent.height.realPos
+            width.pos = theParent.width.realPos
+        } ?: run {
+            printerror("Pas de parent.")
+        }
+        super.open()
     }
 
     override fun reshape(): Boolean {
         open()
         return false
     }
-}
-
-/** Surface d'une string constante. (non localisée, définie "on the fly".) */
-class CstStrSurf: Surface {
-    constructor(refNode: Node?, string: String,
-                x: Float, y: Float, height: Float, lambda: Float = 0f,
-                flags: Long = 0, ceiledWidth: Float? = null,
-                asParent: Boolean = true, asElderBigbro: Boolean = false
-    ) : super(refNode, Texture.getConstantStringTex(string),
-        x, y, height,  lambda, 0, flags, ceiledWidth, asParent, asElderBigbro) {
-        piu.color = floatArrayOf(0f, 0f, 0f, 1f)  // (Text noir par défaut.)
-    }
-
-    /** Changement pour une autre string constante. */
-    fun updateForCstStr(newString: String) {
-        this.tex = Texture.getConstantStringTex(newString)
-        updateRatio()
-    }
-
-    override  fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
-            = CstStrSurf(refNode, this, asParent, asElderBigbro)
-    private constructor(refNode: Node?, toCloneNode: CstStrSurf,
-                        asParent: Boolean, asElderBigbro: Boolean
-    ) : super(refNode, toCloneNode, asParent, asElderBigbro)
-}
-
-/** Surface d'une string localisable.
- * (ne garde en mémoire ni la string ni la locStrID) */
-class LocStrSurf : Surface, Openable {
-    override fun open() {
-        updateRatio()
-    }
-    constructor(refNode: Node, resStrID: Int,
-                x: Float, y: Float, height: Float, lambda: Float = 0f,
-                flags: Long = 0, ceiledWidth: Float? = null,
-                asParent: Boolean = true, asElderBigbro: Boolean = false
-    ) : super(refNode, Texture.getLocalizedStringTex(resStrID),
-        x, y, height, lambda, 0, flags,
-        ceiledWidth, asParent, asElderBigbro) {
-        piu.color = floatArrayOf(0f, 0f, 0f, 1f)
-    }
-    /** Changement d'une string localisée. */
-    fun updateForLocStr(resStrID: Int) {
-        this.tex = Texture.getLocalizedStringTex(resStrID)
-        updateRatio()
-    }
-    override  fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
-            = LocStrSurf(refNode, this, asParent, asElderBigbro)
-    private constructor(refNode: Node?, toCloneNode: LocStrSurf,
-                        asParent: Boolean, asElderBigbro: Boolean
-    ) : super(refNode, toCloneNode, asParent, asElderBigbro)
-}
-
-/** Surface d'une string editable. */
-class EdtStrSurf : Surface, Openable {
-    constructor(refNode: Node, id: Int,
-                x: Float, y: Float, height: Float, lambda: Float = 0f,
-                flags: Long = 0, ceiledWidth: Float? = null,
-                asParent: Boolean = true, asElderBigbro: Boolean = false
-    ) : super(refNode, Texture.getEditableStringTex(id),
-        x, y, height, lambda, 0, flags, ceiledWidth, asParent, asElderBigbro) {
-        piu.color = floatArrayOf(0f, 0f, 0f, 1f)
-    }
-    constructor(refNode: Node, id: Int, string: String,
-                x: Float, y: Float, height: Float, lambda: Float = 0f,
-                flags: Long = 0, ceiledWidth: Float? = null,
-                asParent: Boolean = true, asElderBigbro: Boolean = false
-    ) : this(refNode, id, x, y, height, lambda, flags, ceiledWidth, asParent, asElderBigbro) {
-        piu.color = floatArrayOf(0f, 0f, 0f, 1f)
-        Texture.setEditableString(id, string)
-    }
-
-    override fun open() {
-        updateRatio()
-    }
-    /** Changement pour une autre string editable */
-    fun updateForEdtStr(id: Int) {
-        this.tex = Texture.getEditableStringTex(id)
-        updateRatio()
-    }
-    fun update() {
-        updateRatio()
-    }
-
-
-    override  fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
-            = EdtStrSurf(refNode, this, asParent, asElderBigbro)
-    private constructor(refNode: Node?, toCloneNode: EdtStrSurf,
-                        asParent: Boolean, asElderBigbro: Boolean
-    ) : super(refNode, toCloneNode, asParent, asElderBigbro)
 }

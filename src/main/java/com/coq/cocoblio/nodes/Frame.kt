@@ -1,115 +1,188 @@
+@file:Suppress("EnumEntryName", "JoinDeclarationAndAssignment", "ConvertSecondaryConstructorToPrimary", "unused", "MemberVisibilityCanBePrivate")
+
 package com.coq.cocoblio.nodes
 
-import com.coq.cocoblio.*
-import com.coq.cocoblio.maths.printerror
+import android.opengl.GLES20
+import com.coq.cocoblio.divers.printerror
+import com.coq.cocoblio.graphs.Mesh
+import com.coq.cocoblio.graphs.Texture
 import kotlin.math.max
 
-/** Noeud racine servant de cadre à une surface.
- * (La surface étant placé en petit-frère.)
- * Les enfants de Frame sont 9 surfaces créant le cadre. */
-class Frame : Node {
+enum class Framing {
+    outside,
+    center,
+    inside
+}
+
+class Bar : Surface {
+    private val framing: Framing
     private val delta: Float
-    private val lambda: Float
-    private var pngResID: Int
-    private val isInside: Boolean
 
-    constructor(refNode: Node?, isInside: Boolean = false,
-                delta: Float = 0.1f, lambda: Float = 0f,
-                framePngResID: Int = R.drawable.frame_mocha, flags: Long = 0L
-    ) : super(refNode, 0f, 0f, delta, delta, 0f, flags) {
+    constructor(parent: Node, framing: Framing, delta: Float, width: Float,
+                pngResId: Int, lambda: Float = 0f
+    ) : super(parent, Texture.getPng(pngResId), 0f, 0f, delta * 2f,
+        lambda, Flag1.surfaceDontRespectRatio,
+        Mesh(floatArrayOf(
+            -0.5000f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.000f, 0.0f,
+            -0.5000f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.000f, 1.0f,
+            -0.1667f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.333f, 0.0f,
+            -0.1667f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.333f, 1.0f,
+             0.1667f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.667f, 0.0f,
+             0.1667f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.667f, 1.0f,
+             0.5000f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.000f, 0.0f,
+             0.5000f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.000f, 1.0f),
+            null, GLES20.GL_TRIANGLE_STRIP))
+    {
+        this.framing = framing
         this.delta = delta
-        this.lambda = lambda
-        this.pngResID = framePngResID
-        this.isInside = isInside
+        this.width.set(delta * 4f)
+        update(width, true)
     }
-    /** Constructeur de copie. */
-    constructor(refNode: Node?, toCloneNode: Frame,
-                asParent: Boolean, asElderBigbro: Boolean
+    /** Copie... */
+    private constructor(refNode: Node?, toCloneNode: Bar,
+                        asParent: Boolean, asElderBigbro: Boolean
     ) : super(refNode, toCloneNode, asParent, asElderBigbro) {
+        framing = toCloneNode.framing
         delta = toCloneNode.delta
-        lambda = toCloneNode.lambda
-        pngResID = toCloneNode.pngResID
-        isInside = toCloneNode.isInside
+        mesh = Mesh(toCloneNode.mesh)
     }
-    override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean) : Frame {
-        return Frame(refNode, this, asParent, asElderBigbro)
-    }
+    override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
+            = Bar(refNode, this, asParent, asElderBigbro)
 
-    /** Init ou met à jour un noeud frame
-     * (Ajoute les descendants si besoin) */
-    fun update(width: Float, height: Float, fix: Boolean) {
-        val refSurf = Surface(null, pngResID, 0f, 0f,
-            delta, lambda, 0, Flag1.surfaceDontRespectRatio)
-
-        val sq = Squirrel(this)
-        val deltaX = if (isInside) max(width/2 - delta/2f, delta/2f) else width/2f + delta/2f
-        val deltaY = if (isInside) max(height/2 - delta/2f, delta/2f) else height/2f + delta/2f
-        val smallWidth = if(isInside) max(width - delta, 0f) else width
-        val smallHeight = if(isInside) max(height - delta, 0f) else height
-
-        // Mise à jour des dimensions.
-        this.width.set(smallWidth + 2f * delta)
-        this.height.set(smallHeight + 2f * delta)
-        parent?.let{ parent ->
-            if (containsAFlag(Flag1.giveSizesToParent)) {
-                parent.width.set(this.width.realPos)
-                parent.height.set(this.height.realPos)
-            }
-        }
-        run {
-            sq.goDownForced(refSurf) // tl
-            (sq.pos as? Surface)?.updateTile(0, 0)
-            sq.pos.x.set(-deltaX, fix, true)
-            sq.pos.y.set(deltaY, fix, true)
-            sq.goRightForced(refSurf) // t
-            (sq.pos as? Surface)?.updateTile(1, 0)
-            sq.pos.x.set(0f, fix, true)
-            sq.pos.y.set(deltaY, fix, true)
-            sq.pos.width.set(smallWidth, fix, true)
-            sq.goRightForced(refSurf) // tr
-            (sq.pos as? Surface)?.updateTile(2, 0)
-            sq.pos.x.set(deltaX, fix, true)
-            sq.pos.y.set(deltaY, fix, true)
-            sq.goRightForced(refSurf) // l
-            (sq.pos as? Surface)?.updateTile(3, 0)
-            sq.pos.x.set(-deltaX, fix, true)
-            sq.pos.y.set(0f, fix, true)
-            sq.pos.height.set(smallHeight, fix, true)
-            sq.goRightForced(refSurf) // c
-            (sq.pos as? Surface)?.updateTile(4, 0)
-            sq.pos.x.set(0f, fix, true)
-            sq.pos.y.set(0f, fix, true)
-            sq.pos.width.set(smallWidth, fix, true)
-            sq.pos.height.set(smallHeight, fix, true)
-            sq.goRightForced(refSurf) // r
-            (sq.pos as? Surface)?.updateTile(5, 0)
-            sq.pos.x.set(deltaX, fix, true)
-            sq.pos.y.set(0f, fix, true)
-            sq.pos.height.set(smallHeight, fix, true)
-            sq.goRightForced(refSurf) // bl
-            (sq.pos as? Surface)?.updateTile(6, 0)
-            sq.pos.x.set(-deltaX, fix, true)
-            sq.pos.y.set(-deltaY, fix, true)
-            sq.goRightForced(refSurf) // b
-            (sq.pos as? Surface)?.updateTile(7, 0)
-            sq.pos.x.set(0f, fix, true)
-            sq.pos.y.set(-deltaY, fix, true)
-            sq.pos.width.set(smallWidth, fix, true)
-            sq.goRightForced(refSurf) // br
-            (sq.pos as? Surface)?.updateTile(8, 0)
-            sq.pos.x.set(deltaX, fix, true)
-            sq.pos.y.set(-deltaY, fix, true)
-        }
-    }
-
-    fun updatePng(newPngID: Int) {
-        if (newPngID == pngResID) {
+    fun update(width: Float, fix: Boolean) {
+        if (width < 0) {
+            printerror("deltaX < 0")
             return
         }
-        pngResID = newPngID
-        val sq = Squirrel(firstChild ?: run {printerror("Frame pas init."); return})
-        do {
-            (sq.pos as? Surface)?.updateForTexResID(pngResID)
-        } while (sq.goRight())
+        val smallDeltaX: Float = when(framing) {
+            Framing.outside -> max(0f, width/2f - 2f * delta)
+            Framing.center -> max(0f, width/2f - delta)
+            Framing.inside -> width/2f
+        }
+        val xPos = 0.5f * smallDeltaX / (smallDeltaX + 2f * delta)
+        this.width.set(2f * (smallDeltaX + 2f * delta), fix)
+
+        mesh.setXofVertex(-xPos, 2)
+        mesh.setXofVertex(-xPos, 3)
+        mesh.setXofVertex(xPos, 4)
+        mesh.setXofVertex(xPos, 5)
+
+        mesh.updateVerticesBuffer()
+    }
+
+    fun updateWithLittleBro(fix: Boolean) {
+        littleBro?.let { bro ->
+            x.set(bro.x.realPos, fix)
+            y.set(bro.y.realPos, fix)
+            update(bro.deltaX * 2f, fix)
+        }
+    }
+}
+
+class Frame : Surface {
+    private val framing: Framing
+    private val delta: Float
+    constructor(parent: Node, framing: Framing, delta: Float,
+                lambda: Float = 0f, pngResId: Int,
+                width: Float, height: Float, flags: Long
+    ) : super(parent, Texture.getPng(pngResId), 0f, 0f, delta * 2f,
+            lambda, Flag1.surfaceDontRespectRatio or flags,
+            Mesh(floatArrayOf(
+                    -0.5000f,  0.5000f, 0.0f, 0.0f, 0.0f, 1.0f, 0.000f, 0.000f, // 0
+                    -0.5000f,  0.1667f, 0.0f, 0.0f, 0.0f, 1.0f, 0.000f, 0.333f, // 1
+                    -0.5000f, -0.1667f, 0.0f, 0.0f, 0.0f, 1.0f, 0.000f, 0.667f, // 2
+                    -0.5000f, -0.5000f, 0.0f, 0.0f, 0.0f, 1.0f, 0.000f, 1.000f, // 3
+                    -0.1667f,  0.5000f, 0.0f, 0.0f, 0.0f, 1.0f, 0.333f, 0.000f, // 4
+                    -0.1667f,  0.1667f, 0.0f, 0.0f, 0.0f, 1.0f, 0.333f, 0.333f, // 5
+                    -0.1667f, -0.1667f, 0.0f, 0.0f, 0.0f, 1.0f, 0.333f, 0.667f, // 6
+                    -0.1667f, -0.5000f, 0.0f, 0.0f, 0.0f, 1.0f, 0.333f, 1.000f,
+                     0.1667f,  0.5000f, 0.0f, 0.0f, 0.0f, 1.0f, 0.667f, 0.000f,
+                     0.1667f,  0.1667f, 0.0f, 0.0f, 0.0f, 1.0f, 0.667f, 0.333f,
+                     0.1667f, -0.1667f, 0.0f, 0.0f, 0.0f, 1.0f, 0.667f, 0.667f,
+                     0.1667f, -0.5000f, 0.0f, 0.0f, 0.0f, 1.0f, 0.667f, 1.000f,
+                     0.5000f,  0.5000f, 0.0f, 0.0f, 0.0f, 1.0f, 1.000f, 0.000f,
+                     0.5000f,  0.1667f, 0.0f, 0.0f, 0.0f, 1.0f, 1.000f, 0.333f,
+                     0.5000f, -0.1667f, 0.0f, 0.0f, 0.0f, 1.0f, 1.000f, 0.667f,
+                     0.5000f, -0.5000f, 0.0f, 0.0f, 0.0f, 1.0f, 1.000f, 1.000f),
+                 intArrayOf(
+                     0, 1, 4,  1, 5, 4,
+                     1, 2, 5,  2, 6, 5,
+                     2, 3, 6,  3, 7, 6,
+                     4, 5, 8,  5, 9, 8,
+                     5, 6, 9,  6, 10, 9,
+                     6, 7, 10, 7, 11, 10,
+                     8, 9, 12, 9, 13, 12,
+                     9, 10, 13, 10, 14, 13,
+                     10, 11, 14, 11, 15, 14
+                 ), GLES20.GL_TRIANGLES))
+    {
+        this.framing = framing
+        this.delta = delta
+        this.width.set(delta * 4f)
+        update(width, height, true)
+    }
+    /** Copie... */
+    private constructor(refNode: Node?, toCloneNode: Frame,
+                        asParent: Boolean, asElderBigbro: Boolean
+    ) : super(refNode, toCloneNode, asParent, asElderBigbro) {
+        framing = toCloneNode.framing
+        delta = toCloneNode.delta
+        mesh = Mesh(toCloneNode.mesh)
+    }
+    override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean)
+            = Frame(refNode, this, asParent, asElderBigbro)
+
+    fun update(width: Float, height: Float, fix: Boolean) {
+        if (width < 0 || height < 0) {
+            printerror("width or height < 0")
+            return
+        }
+        val smallDeltaX: Float = when(framing) {
+            Framing.outside -> max(0f, width/2f - 2f * delta)
+            Framing.center -> max(0f, width/2f - delta)
+            Framing.inside -> width/2f
+        }
+        val smallDeltaY: Float = when(framing) {
+            Framing.outside -> max(0f, height/2f - 2f * delta)
+            Framing.center -> max(0f, height/2f - delta)
+            Framing.inside -> height/2f
+        }
+        val xPos = 0.5f * smallDeltaX / (smallDeltaX + 2f * delta)
+        val yPos = 0.5f * smallDeltaY / (smallDeltaY + 2f * delta)
+        this.width.set(2f * (smallDeltaX + 2f * delta), fix)
+        this.height.set(2f * (smallDeltaY + 2f * delta), fix)
+
+        mesh.setXofVertex(-xPos, 4)
+        mesh.setXofVertex(-xPos, 5)
+        mesh.setXofVertex(-xPos, 6)
+        mesh.setXofVertex(-xPos, 7)
+        mesh.setXofVertex( xPos, 8)
+        mesh.setXofVertex( xPos, 9)
+        mesh.setXofVertex( xPos, 10)
+        mesh.setXofVertex( xPos, 11)
+
+        mesh.setYofVertex( yPos, 1)
+        mesh.setYofVertex( yPos, 5)
+        mesh.setYofVertex( yPos, 9)
+        mesh.setYofVertex( yPos, 13)
+        mesh.setYofVertex(-yPos, 2)
+        mesh.setYofVertex(-yPos, 6)
+        mesh.setYofVertex(-yPos, 10)
+        mesh.setYofVertex(-yPos, 14)
+
+        mesh.updateVerticesBuffer()
+
+        if(containsAFlag(Flag1.giveSizesToParent)) parent?.let {
+            it.width.set(this.width.realPos)
+            it.height.set(this.height.realPos)
+        }
+    }
+
+    fun updateWithLittleBro(fix: Boolean) {
+        littleBro?.let { bro ->
+            x.set(bro.x.realPos, fix)
+            y.set(bro.y.realPos, fix)
+            update(bro.deltaX * 2f, bro.deltaY * 2f, fix)
+        }
     }
 }

@@ -1,12 +1,26 @@
+@file:Suppress("ConvertSecondaryConstructorToPrimary")
+
 package com.coq.cocoblio.nodes
 
-import com.coq.cocoblio.*
+import com.coq.cocoblio.R
+import com.coq.cocoblio.divers.Chrono
 import com.coq.cocoblio.maths.SmoothPos
 import com.coq.cocoblio.maths.Vector2
-import com.coq.cocoblio.maths.printerror
+import com.coq.cocoblio.divers.printerror
+import com.coq.cocoblio.graphs.Texture
 import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.math.*
+
+interface Scrollable {
+    /** Scrolling with wheel. */
+    fun scroll(up: Boolean)
+    /** Scrolling with trackpad. */
+    fun trackpadScrollBegan()
+    fun trackpadScroll(deltaY: Float)
+    fun trackpadScrollEnded()
+}
+
 
 /** Menu déroulant: root->menu->(item1, item2,... )
  * Vide au départ, doit être rempli quand on veut l'afficher.
@@ -15,18 +29,20 @@ import kotlin.math.*
  * checkItem : Methode/ext de noeud pour mettre à jour les noeud-boutons.
  * getIndicesRangeAtOpening : exécuter à l'ouverture du sliding menu et retourne le range attendu des items.
  * getPosIndex : la position de l'indice où on est centré à l'ouverture. */
-open class SlidingMenu(refNode: Node, private val nDisplayed: Int,
+class SlidingMenu(refNode: Node, private val nDisplayed: Int,
                   x: Float, y: Float, width: Float, height: Float, private val spacing: Float,
                   val addNewItem: ((menu: Node, index: Int) -> Unit),
                   val getIndicesRangeAtOpening: (() -> IntRange),
                   val getPosIndex: (() -> Int)
 ) : Node(refNode, x, y, width, height, 10f
-), Draggable, Openable
+), Draggable, Scrollable
 {
     private var menuGrabPosY: Float? = null
     private var indicesRange: IntRange = IntRange.EMPTY
     private val menu: Node // Le menu qui "glisse" sur le noeud racine.
+    private val scrollBar: SlidingMenuScrollBar
     private val vitY = SmoothPos(0f, 4f) // La vitesse lors du "fling"
+    private var vitYm1: Float = 0f
     private val deltaT = Chrono() // Pour la distance parcourue
     private val flingChrono = Chrono() // Temps de "vol"
     /** Le déplacement maximal du menu en y. 0 si n <= nD. */
@@ -38,16 +54,87 @@ open class SlidingMenu(refNode: Node, private val nDisplayed: Int,
     init {
         makeSelectable()
         tryToAddFrame()
-        @Suppress("LeakingThis")
+        val scrollBarWidth = width * 0.025f
         menu = Node(this, 0f, 0f, width, height, 20f)
+        scrollBar = SlidingMenuScrollBar(this, scrollBarWidth)
     }
 
-    // Respect des "interfaces"
+    /*-- Scrollable --*/
+    override fun scroll(up: Boolean) {
+        setMenuYpos(menu.y.realPos + if(up) -itemHeight else itemHeight,
+                snap = true, fix = false)
+        checkItemsVisibility(true)
+    }
+
+    override fun trackpadScrollBegan() {
+        flingChrono.stop()
+        vitYm1 = 0f
+        vitY.set(0f)
+        deltaT.start()
+    }
+
+    override fun trackpadScroll(deltaY: Float) {
+        val menuDeltaY = -0.015f * deltaY
+        setMenuYpos(menu.y.realPos + menuDeltaY, snap = true, fix = false)
+        checkItemsVisibility(true)
+        if(deltaT.elapsedSec > 0f) {
+            vitYm1 = vitY.realPos
+            vitY.set(menuDeltaY / deltaT.elapsedSec)
+        }
+        deltaT.start()
+    }
+
+    override fun trackpadScrollEnded() {
+        vitY.set((vitY.realPos + vitYm1)/2)
+        if (abs(vitY.realPos) < 6f) {
+            setMenuYpos(menu.y.realPos, snap = true, fix = false)
+            return
+        }
+        flingChrono.start()
+        deltaT.start()
+
+        checkFling()
+    }
+
+    /*-- Draggable --*/
+    override fun grab(posInit: Vector2) {
+        flingChrono.stop()
+        deltaT.stop()
+        menuGrabPosY = posInit.y - menu.y.realPos
+    }
+    /** Scrooling vertical de menu. (déplacement en cours, a besoin d'un letGoWith) */
+    override fun drag(posNow: Vector2) {
+        menuGrabPosY?.let {
+            setMenuYpos(posNow.y - it, snap = false, fix = false)
+        } ?: printerror("drag pas init.")
+
+        checkItemsVisibility(true)
+    }
+    override fun letGo(speed: Vector2?) {
+        // 0. Cas stop. Lâche sans bouger.
+        if(speed == null) {
+            setMenuYpos(menu.y.realPos, snap = true, fix = false)
+            checkItemsVisibility(true)
+            return
+        }
+        // 1. Cas on laisse en "fling" (checkItemVisibilty s'occupe de mettre à jour la position)
+        vitY.set(speed.y/2f, fix = true, setAsDef = false)
+        flingChrono.start()
+        deltaT.start()
+
+        checkFling()
+    }
+
+    override fun justTap() {
+        // (pass)
+    }
+
+    /*-- Override open node --*/
     override fun open() {
         fun placeToOpenPos() {
             val normalizedID = max(min(getPosIndex(), indicesRange.last), indicesRange.first) - indicesRange.first
-            setMenuYpos(itemHeight * (normalizedID.toFloat() - 0.5f * (indicesRange.count()-1).toFloat()),
-                snap = true, fix = true)
+            val y0 = itemHeight * normalizedID.toFloat() - menuDeltaYMax
+            setMenuYpos(y0, snap = true, fix = true)
         }
         // Mettre tout de suite le flag "show".
         if(!menu.containsAFlag(Flag1.hidden))
@@ -67,8 +154,14 @@ open class SlidingMenu(refNode: Node, private val nDisplayed: Int,
             menu.disconnectChild(true)
         }
         // 2. Ajout des items avec lambda addingItem
-        for (i in indicesRange) {
-            addNewItem(menu, i)
+        if (indicesRange.isEmpty()) {
+            scrollBar.setNubHeightWithRelHeight(1f)
+        } else {
+            val heightRatio = nDisplayed.toFloat() / max(1f, indicesRange.count().toFloat())
+            scrollBar.setNubHeightWithRelHeight(heightRatio)
+            for (i in indicesRange) {
+                addNewItem(menu, i)
+            }
         }
         // 3. Normaliser les hauteurs pour avoir itemHeight
         val sq = Squirrel(menu)
@@ -87,38 +180,8 @@ open class SlidingMenu(refNode: Node, private val nDisplayed: Int,
         menu.alignTheChildren(AlignOpt.vertically or AlignOpt.fixPos, 1f, spacing)
         placeToOpenPos()
         checkItemsVisibility(false)
-    }
-
-    override fun grab(posInit: Vector2) : Boolean {
-        flingChrono.stop()
-        deltaT.stop()
-        menuGrabPosY = posInit.y - menu.y.realPos
-
-        return false
-    }
-    /** Scrooling vertical de menu. (déplacement en cours, a besoin d'un letGoWith) */
-    override fun drag(posNow: Vector2) : Boolean {
-        menuGrabPosY?.let {
-            setMenuYpos(posNow.y - it, snap = false, fix = false)
-        } ?: printerror("drag pas init.")
-
-        checkItemsVisibility(true)
-        return false
-    }
-    override fun letGo(speed: Vector2?) : Boolean {
-        // 0. Cas stop. Lâche sans bouger.
-        if(speed == null) {
-            setMenuYpos(menu.y.realPos, snap = true, fix = false)
-            checkItemsVisibility(true)
-            return false
-        }
-        // 1. Cas on laisse en "fling" (checkItemVisibilty s'occupe de mettre à jour la position)
-        vitY.set(speed.y/2f, fix = true, setAsDef = false)
-        flingChrono.start()
-        deltaT.start()
-
-        checkFling()
-        return false
+        // 5. Open "node"
+        super.open()
     }
 
     private fun checkFling() {
@@ -133,7 +196,7 @@ open class SlidingMenu(refNode: Node, private val nDisplayed: Int,
             }
         }
         if (deltaT.elapsedMS > 30L) {
-            setMenuYpos(menu.y.realPos + deltaT.elsapsedSec * vitY.pos,
+            setMenuYpos(menu.y.realPos + deltaT.elapsedSec * vitY.pos,
                 snap = false, fix = false)
             deltaT.start()
         }
@@ -185,4 +248,62 @@ open class SlidingMenu(refNode: Node, private val nDisplayed: Int,
         } else { yCandIn }
         menu.y.set(max(min(yCand, menuDeltaYMax), -menuDeltaYMax), fix, setAsDef = false)
     }
+
+
 }
+
+private class SlidingMenuScrollBar : Node {
+    private val nub: Node
+    private val nubTop: TiledSurface
+    private val nubMid: TiledSurface
+    private val nubBot: TiledSurface
+
+    constructor(parent: SlidingMenu, width: Float
+    ) : super(parent, parent.width.realPos/2f - width/2f, 0f, width, parent.height.realPos)
+    {
+        val parHeight = parent.height.realPos
+        val backTex = Texture.getPng(R.drawable.scroll_bar_back)
+        val frontTex = Texture.getPng(R.drawable.scroll_bar_front)
+
+        // Back of scrollBar
+        TiledSurface(this, backTex, 0f, parHeight/2f - width/2f, width)
+        TiledSurface(this, backTex, 0f, 0f, width,
+                0f, 1, Flag1.surfaceDontRespectRatio).also { midSec ->
+            midSec.height.set(parHeight - 2f*width)
+        }
+        TiledSurface(this, backTex, 0f, -parHeight/2f + width/2f, width,
+                0f, 2)
+
+        // Nub (sliding)
+        nub = Node(this, 0f, parHeight/4, width, width*3f, 30f)
+        nubTop = TiledSurface(nub, frontTex, 0f, width, width)
+        nubMid = TiledSurface(nub, frontTex, 0f, 0f, width, 0f, 1, Flag1.surfaceDontRespectRatio)
+        nubBot = TiledSurface(nub, frontTex, 0f, -width, width, 0f, 2)
+    }
+
+    fun setNubHeightWithRelHeight(newRelHeight: Float) {
+        if (newRelHeight >= 1 || newRelHeight <= 0) {
+            addFlags(Flag1.hidden)
+            closeBranch()
+            return
+        }
+        removeFlags(Flag1.hidden)
+        val w = width.realPos
+        val heightTmp = height.realPos * newRelHeight
+        val heightMid = max(0f, heightTmp - 2f * w)
+        nub.height.set(heightMid * 2f * w)
+        nubTop.y.set((heightMid + w)/2f)
+        nubBot.y.set(-(heightMid + w)/2f)
+        nubMid.height.set(heightMid)
+    }
+
+    /*
+    fun setNubRelY(newRelY: Float) {
+        val deltaY = (height.realPos - nub.height.realPos)/2f
+        nub.y.pos = -newRelY * deltaY
+    }
+    */
+}
+
+
+

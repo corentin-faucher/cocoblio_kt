@@ -1,9 +1,9 @@
 @file:Suppress("unused")
 
-package com.coq.cocoblio
+package com.coq.cocoblio.graphs
 
 import android.opengl.GLES20
-import com.coq.cocoblio.maths.printerror
+import com.coq.cocoblio.divers.printerror
 import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -72,6 +72,9 @@ class Mesh(val vertices: FloatArray, internal val indices: IntArray?, private va
                 indices.size * 4, indicesBuffer, GLES20.GL_STATIC_DRAW)
         }
     }
+
+    constructor(other: Mesh) : this(other.vertices.clone(), other.indices?.clone(),
+            other.primitiveType)
 
     fun updateVerticesBuffer() {
         verticesBuffer = ByteBuffer.allocateDirect(vertices.size * 4).run {

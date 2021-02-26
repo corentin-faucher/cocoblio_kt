@@ -38,6 +38,7 @@ void main() {
     uvOut = (uv * (texWH - texMN) + texIJ * texWH) / (texMN*(texWH - 1.));
 
     gl_Position = projection * model * posTmp;
+    //gl_Position = projection * model * posTmp;
 }
 
 /*

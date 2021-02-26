@@ -3,7 +3,7 @@
 package com.coq.cocoblio.nodes
 
 import com.coq.cocoblio.maths.Vector2
-import com.coq.cocoblio.maths.printerror
+import com.coq.cocoblio.divers.printerror
 import java.lang.Exception
 import kotlin.math.*
 

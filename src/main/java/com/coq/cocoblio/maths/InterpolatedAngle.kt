@@ -2,7 +2,8 @@
 
 package com.coq.cocoblio.maths
 
-import com.coq.cocoblio.GlobalChrono
+import com.coq.cocoblio.divers.GlobalChrono
+import com.coq.cocoblio.divers.printerror
 
 /** Angle "moyen" interpollé en fonction des dernières valeurs entrées.
  * (Pour un roulement smooth.) */

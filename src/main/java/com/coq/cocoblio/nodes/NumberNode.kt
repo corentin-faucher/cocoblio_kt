@@ -19,12 +19,13 @@ class NumberNode : Node {
     private var extraDigit: Digits?
     private var spacing: Float
     private var sepSpacing: Float
+    private val showPlus: Boolean
 
     constructor(refNode: Node?, number: Int,
                 x: Float, y: Float, height: Float, lambda: Float = 0f,
                 unitDecimal: Int = 0, digitPngResID: Int = R.drawable.digits_black,
                 separator: Digits = Digits.Dot, extraDigit: Digits? = null,
-                spacing: Float = 0.83f, sepSpacing: Float = 0.5f
+                spacing: Float = 0.83f, sepSpacing: Float = 0.5f, showPlus: Boolean = false
     ) : super(refNode, x, y, 1f, 1f, lambda) {
         this.digitPngResID = digitPngResID
         this.number = number
@@ -33,13 +34,14 @@ class NumberNode : Node {
         this.extraDigit = extraDigit
         this.spacing = spacing
         this.sepSpacing = sepSpacing
+        this.showPlus = showPlus
         scaleX.set(height)
         scaleY.set(height)
 
         update()
     }
     /** Constructeur de copie. */
-    constructor(refNode: Node?, toCloneNode: NumberNode,
+    private constructor(refNode: Node?, toCloneNode: NumberNode,
                 asParent: Boolean, asElderBigbro: Boolean
     ) : super(refNode, toCloneNode, asParent, asElderBigbro) {
         digitPngResID = toCloneNode.digitPngResID
@@ -49,7 +51,7 @@ class NumberNode : Node {
         extraDigit = toCloneNode.extraDigit
         spacing = toCloneNode.spacing
         sepSpacing = toCloneNode.sepSpacing
-
+        showPlus = toCloneNode.showPlus
         update()
     }
     override fun copy(refNode: Node?, asParent: Boolean, asElderBigbro: Boolean) : NumberNode {
@@ -69,7 +71,7 @@ class NumberNode : Node {
 
     private fun update() {
         // 0. Init...
-        val refSurf = Surface(null, digitPngResID, 0f, 0f, 1f)
+        val refSurf = TiledSurface(null, digitPngResID, 0f, 0f, 1f)
         refSurf.scaleX.set(spacing)
         val sq = Squirrel(this)
         val displayedNumber: UInt = abs(number).toUInt()
@@ -79,22 +81,25 @@ class NumberNode : Node {
         // 1. Signe "-"
         sq.goDownForced(refSurf)
         if (isNegative) {
-            (sq.pos as? Surface)?.updateTile(Digits.Minus.ordinal, 0)
+            (sq.pos as? TiledSurface)?.updateTile(Digits.Minus.ordinal, 0)
+            sq.goRightForced(refSurf)
+        } else if (showPlus) {
+            (sq.pos as? TiledSurface)?.updateTile(Digits.Plus.ordinal, 0)
             sq.goRightForced(refSurf)
         }
         // 2. Chiffres avant le "separator"
         for (i in maxDigits downTo unitDecimal) {
-            (sq.pos as? Surface)?.updateTile(displayedNumber.getTheDigitAt(i).toInt(), 0)
+            (sq.pos as? TiledSurface)?.updateTile(displayedNumber.getTheDigitAt(i).toInt(), 0)
             if(i > 0)
                 sq.goRightForced(refSurf)
         }
         // 3. Separator et chiffres restants
         if(unitDecimal > 0) {
-            (sq.pos as? Surface)?.updateTile(separator.ordinal, 0)
+            (sq.pos as? TiledSurface)?.updateTile(separator.ordinal, 0)
             sq.pos.scaleX.set(sepSpacing)
             sq.goRightForced(refSurf)
             for (i in unitDecimal-1 downTo 0) {
-                (sq.pos as? Surface)?.updateTile(displayedNumber.getTheDigitAt(i).toInt(), 0)
+                (sq.pos as? TiledSurface)?.updateTile(displayedNumber.getTheDigitAt(i).toInt(), 0)
                 if(i > 0)
                     sq.goRightForced(refSurf)
             }
@@ -102,7 +107,7 @@ class NumberNode : Node {
         // 4. Extra/"unit" digit
         extraDigit?.let {
             sq.goRightForced(refSurf)
-            (sq.pos as? Surface)?.updateTile(it.ordinal, 0)
+            (sq.pos as? TiledSurface)?.updateTile(it.ordinal, 0)
         }
         // 5. Nettoyage de la queue.
         while (sq.pos.littleBro != null) {

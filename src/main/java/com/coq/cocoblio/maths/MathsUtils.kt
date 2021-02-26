@@ -7,16 +7,6 @@ import java.nio.ByteBuffer
 import java.util.*
 import kotlin.math.*
 
-/** Affichage d'erreur. */
-fun printerror(message: String) {//, functionName: String = #methodName())
-    val e = Exception().stackTrace
-    System.err.print("ERROR $message (")
-    if(e.size > 1) for(index in 1..min(3, e.size)) {
-        System.err.print(" ${e[index].methodName} in ${e[index].fileName} ")
-    }
-    System.err.println(")")
-}
-
 /** Vecteurs 2D */
 data class Vector2(var x: Float = 0.0f, var y: Float = 0.0f)
 operator fun Vector2.plus(other: Vector2) = Vector2(x + other.x, y + other.y)

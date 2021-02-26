@@ -7,7 +7,7 @@
 package com.coq.cocoblio.nodes
 
 import com.coq.cocoblio.maths.Vector2
-import com.coq.cocoblio.maths.printerror
+import com.coq.cocoblio.divers.printerror
 
 /** Ajouter des flags à une branche (noeud et descendents s'il y en a). */
 fun Node.addBranchFlags(flags: Long) {
@@ -100,7 +100,7 @@ fun Node.makeSelectable() {
  * 3. visite si est une branche avec "show".
  * (show peut avoir été ajouté exterieurement) */
 fun Node.openBranch() {
-    (this as? Openable)?.open()
+    open()
     if (!containsAFlag(Flag1.hidden)) {
         addFlags(Flag1.show)
     }
@@ -109,7 +109,7 @@ fun Node.openBranch() {
     }
     val sq = Squirrel(firstChild ?: return)
     while (true) {
-        (sq.pos as? Openable)?.open()
+        sq.pos.open()
         if (!sq.pos.containsAFlag(Flag1.hidden)) {
             sq.pos.addFlags(Flag1.show)
         }
@@ -130,13 +130,13 @@ fun Node.openBranch() {
 fun Node.closeBranch() {
     if (!containsAFlag(Flag1.exposed)) {
         removeFlags(Flag1.show)
-        (this as? Closeable)?.close()
+        close()
     }
     val sq = Squirrel(firstChild ?: return)
     while (true) {
         if (!sq.pos.containsAFlag(Flag1.exposed)) {
             sq.pos.removeFlags(Flag1.show)
-            (sq.pos as? Closeable)?.close()
+            sq.pos.close()
         }
         if (sq.goDown()) {continue}
         while (!sq.goRight()) {
@@ -148,23 +148,14 @@ fun Node.closeBranch() {
 }
 
 fun Node.reshapeBranch() {
-    if (!containsAFlag(Flag1.show)) {
+    if (!containsAFlag(Flag1.show))
         return
-    }
-    var needToreshapeChildren: Boolean = (this as? Reshapable)?.reshape() ?: false
-    if (!needToreshapeChildren) { // !containsAFlag(Flag1.reshapableRoot)
+    if (!reshape())
         return
-    }
     val sq = Squirrel(firstChild ?: return)
     while (true) {
-        if (sq.pos.containsAFlag(Flag1.show)) {
-            needToreshapeChildren = (sq.pos as? Reshapable)?.reshape() ?: false
-            if (needToreshapeChildren) { // sq.pos.containsAFlag(Flag1.reshapableRoot)
-                if (sq.goDown()) {
-                    continue
-                }
-            }
-        }
+        if (sq.pos.containsAFlag(Flag1.show)) if (sq.pos.reshape()) if (sq.goDown())
+            continue
         while (!sq.goRight()) {
             if (!sq.goUp()) {
                 printerror("Pas de root."); return

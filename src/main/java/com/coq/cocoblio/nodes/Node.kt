@@ -2,31 +2,16 @@
 
 package com.coq.cocoblio.nodes
 
-import com.coq.cocoblio.*
+import com.coq.cocoblio.graphs.Renderer
 import com.coq.cocoblio.maths.SmoothPos
 import com.coq.cocoblio.maths.Vector2
-import com.coq.cocoblio.maths.printerror
+import com.coq.cocoblio.divers.printerror
 
 /** Un noeud est la structure de base de l'app... */
 open class Node {
     /*-- Données de bases --*/
     /** Flags : Les options sur le noeud. */
     private var flags: Long
-    /** Retirer des flags au noeud. */
-    fun removeFlags(toRemove: Long) {
-        flags = flags and toRemove.inv()
-    }
-    /** Ajouter des flags au noeud. */
-    fun addFlags(toAdd: Long) {
-        flags = flags or toAdd
-    }
-    fun addRemoveFlags(toAdd: Long, toRemove: Long) {
-        flags = (flags or toAdd) and toRemove.inv()
-    }
-    fun containsAFlag(flagsRef: Long) = (flags and flagsRef != 0L)
-    fun isDisplayActive() = (this is Surface && trShow.isActive) ||
-            containsAFlag(Flag1.show or Flag1.branchToDisplay)
-
     /** Positions, tailles, etc. */
     val x : SmoothPos
     val y : SmoothPos
@@ -51,6 +36,43 @@ open class Node {
     var lastChild: Node? = null
     var littleBro: Node? = null
     var bigBro: Node? = null
+
+    /** Retirer des flags au noeud. */
+    fun removeFlags(toRemove: Long) {
+        flags = flags and toRemove.inv()
+    }
+    /** Ajouter des flags au noeud. */
+    fun addFlags(toAdd: Long) {
+        flags = flags or toAdd
+    }
+    fun addRemoveFlags(toAdd: Long, toRemove: Long) {
+        flags = (flags or toAdd) and toRemove.inv()
+    }
+    fun containsAFlag(flagsRef: Long) = (flags and flagsRef != 0L)
+    open fun isDisplayActive() = containsAFlag(Flag1.show or Flag1.branchToDisplay)
+
+    /*-- Ouverture, fermeture, reshape... --*/
+    /** Open "base" ajuste la position (fading et relativeToParent) */
+    open fun open() {
+        if(!containsAFlag(Flag1.openFlags))
+            return
+        if(containsAFlag(Flag1.relativeFlags)) {
+            setRelativelyToParent(true)
+            return
+        }
+        if(!containsAFlag(Flag1.show))
+            x.fadeIn()
+    }
+    open fun close() {
+        if(containsAFlag(Flag1.fadeInRight))
+            x.fadeOut()
+    }
+    open fun reshape() : Boolean {
+        if(!containsAFlag(Flag1.relativeFlags))
+            return false
+        setRelativelyToParent(false)
+        return false
+    }
 
     /*-- Positions absolue et relative du noeud. --*/
     /** Obtenir la position absolue d'un noeud. */

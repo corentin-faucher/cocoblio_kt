@@ -1,11 +1,13 @@
-package com.coq.cocoblio
+package com.coq.cocoblio.divers
 
 
 import android.app.Activity
-import android.content.res.Configuration
+//import android.content.res.Configuration
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.view.*
+import com.coq.cocoblio.graphs.Renderer
+import com.coq.cocoblio.nodes.AppRootBase
 import com.coq.cocoblio.nodes.KeyboardKey
 
 /** Les events sont gérés par le renderer.... ? pas le choix ?
@@ -15,13 +17,12 @@ abstract class CoqActivity(private val appThemeID: Int,
                            private val vertShaderID: Int?,
                            private val fragShaderID: Int?
 ) : Activity(), GestureDetector.OnGestureListener {
-
-    protected lateinit var renderer: Renderer
-    // Workaround... Solution ???
-    abstract fun getGameEngine(): GameEngineBase
+    lateinit var renderer: Renderer
 
     private lateinit var view: GLSurfaceView
     private lateinit var gestureDetector: GestureDetector
+
+    abstract fun getTheAppRoot() : AppRootBase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(appThemeID)
@@ -33,23 +34,50 @@ abstract class CoqActivity(private val appThemeID: Int,
         view = GLSurfaceView(this)
         view.setEGLContextClientVersion(2)
         view.preserveEGLContextOnPause = true
+        printdebug("onCreate: Creation du renderer...")
         renderer = Renderer(this, vertShaderID, fragShaderID)
         view.setRenderer(renderer)
-        
         setContentView(view)
-
 
         SoundManager.initWith(this)
     }
-
-    override fun onConfigurationChanged(newConfig: Configuration?) {
+    override fun onPause() {
+        super.onPause()
+        printdebug("onPause")
         with(view) {
             queueEvent {
-                renderer.onConfigurationChanged()
+                renderer.onPause()
             }
         }
-        super.onConfigurationChanged(newConfig)
+        view.onPause()
+
     }
+
+    override fun onResume() {
+        super.onResume()
+        printdebug("onResume")
+        view.onResume()
+//        with(view) {
+//            queueEvent {
+//                renderer.onResume()
+//            }
+//        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        printdebug("onDestroy")
+    }
+
+
+//    override fun onConfigurationChanged(newConfig: Configuration?) {
+//        with(view) {
+//            queueEvent {
+//                renderer.onConfigurationChanged()
+//            }
+//        }
+//        super.onConfigurationChanged(newConfig)
+//    }
 
     /*-- Renvoie des events vers le renderer...??? --*/
 
@@ -137,24 +165,8 @@ abstract class CoqActivity(private val appThemeID: Int,
                     renderer.onTouchUp(null, null)
                 }
             }
-
         }
         return super.onTouchEvent(event)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        view.onPause()
-        with(view) {
-            queueEvent {
-                renderer.onPause()
-            }
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        view.onResume()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

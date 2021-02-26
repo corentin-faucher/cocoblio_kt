@@ -1,6 +1,6 @@
 package com.coq.cocoblio.maths
 
-import com.coq.cocoblio.SmallChrono
+import com.coq.cocoblio.divers.SmallChrono
 import kotlin.experimental.and
 import kotlin.experimental.or
 import kotlin.math.PI

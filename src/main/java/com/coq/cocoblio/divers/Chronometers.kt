@@ -1,6 +1,6 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate")
 
-package com.coq.cocoblio
+package com.coq.cocoblio.divers
 
 object GlobalChrono {
     var elapsedMS: Long = 0L
@@ -11,11 +11,9 @@ object GlobalChrono {
         set(newValue) {
             if (!newValue) { // isPaused == false -> isActive == true
                 isActive = true
-                touchTime = startingTime +
-                        elapsedMS
+                touchTime = startingTime + elapsedMS
                 touchElapsed = 0
-                if (!isActive) {
-                    justUnpause = true}
+                if (!isActive) { justUnpause = true }
             } else {
                 isActive = false
             }
@@ -41,25 +39,19 @@ object GlobalChrono {
             isActive = true
         }
         if (justUnpause) {
-            startingTime = systemTime -
-                    elapsedMS
-            touchTime = systemTime -
-                    touchElapsed
+            startingTime = systemTime - elapsedMS
+            touchTime = systemTime - touchElapsed
             justUnpause = false
             return
         }
         if (isActive) {
             // Cas patologique où il n'y a pas eu de mise à jour depuis longtemps...
             if (systemTime - startingTime - elapsedMS > 500) {
-                startingTime = systemTime -
-                        elapsedMS - 500 // Interval plafonne à 500
-                touchTime = systemTime -
-                        touchElapsed - 500
+                startingTime = systemTime - elapsedMS - 500 // Interval plafonne à 500
+                touchTime = systemTime - touchElapsed - 500
             }
-            elapsedMS = systemTime -
-                    startingTime
-            touchElapsed = systemTime -
-                    touchTime
+            elapsedMS = systemTime - startingTime
+            touchElapsed = systemTime - touchTime
         }
     }
 
@@ -81,8 +73,8 @@ class Chrono {
     val elapsedMS: Long
         get() = if(isActive) (GlobalChrono.elapsedMS - time) else time
     /** Le temps écoulé depuis "start()" en secondes. */
-    val elsapsedSec: Float
-        get() = elapsedMS.toFloat() / 1000.0f
+    val elapsedSec: Float
+        get() = elapsedMS.toFloat() / 1000f
     /** Le temps global où le chrono a commencé (en millisec). */
     val startTimeMS: Long
         get() = if(isActive) time else GlobalChrono.elapsedMS - time
@@ -132,22 +124,6 @@ class Chrono {
     private var time: Long = 0L
 }
 
-class SmallChrono {
-    val elapsedMS16: Short
-        get() = (GlobalChrono.elapsedMS16 - startTime).toShort()
-
-    fun start() {
-        startTime = GlobalChrono.elapsedMS16
-    }
-    fun setElapsedTo(newTimeMS: Int) {
-        startTime = (GlobalChrono.elapsedMS - newTimeMS).toShort()
-    }
-
-    // Membre privé
-    private var startTime: Short = 0
-}
-
-
 class CountDown(var ringTimeMS: Long) {
     var isActive: Boolean = false
         private set
@@ -167,6 +143,18 @@ class CountDown(var ringTimeMS: Long) {
             ringTimeMS = (newRingTimeSec * 1000.0f).toLong()
         }
 
+    val elapsedMS64: Long
+        get() = if(isActive) (GlobalChrono.elapsedMS - time) else time
+
+    val remainingMS: Long
+        get() {
+            val elapsed = elapsedMS64
+            return if (elapsed > ringTimeMS) 0 else (ringTimeMS - elapsed)
+        }
+
+    val remainingSec: Float
+        get() = remainingMS.toFloat() / 1000.0f
+
 
     constructor(ringSec: Float) : this(
         if(ringSec <0) 0L else (ringSec * 1000.0f).toLong())
@@ -184,3 +172,20 @@ class CountDown(var ringTimeMS: Long) {
     private var time: Long = 0
 }
 
+class SmallChrono {
+    val elapsedMS16: Short
+        get() = (GlobalChrono.elapsedMS16 - startTime).toShort()
+
+    val elapsedSec: Float
+        get() =(GlobalChrono.elapsedMS16 - startTime).toFloat()/1000.0f
+
+    fun start() {
+        startTime = GlobalChrono.elapsedMS16
+    }
+    fun setElapsedTo(newTimeMS: Int) {
+        startTime = (GlobalChrono.elapsedMS - newTimeMS).toShort()
+    }
+
+    // Membre privé
+    private var startTime: Short = 0
+}

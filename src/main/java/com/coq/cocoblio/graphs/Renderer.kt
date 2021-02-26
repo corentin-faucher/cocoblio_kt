@@ -1,19 +1,22 @@
 @file:Suppress("unused")
 
-package com.coq.cocoblio
+package com.coq.cocoblio.graphs
 
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
+import android.view.KeyEvent
+import com.coq.cocoblio.R
+import com.coq.cocoblio.divers.*
 import com.coq.cocoblio.maths.*
 import com.coq.cocoblio.nodes.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
-import kotlin.math.*
 
 class Renderer(private val coqActivity: CoqActivity,
                private val customVertShadResID: Int?,
                private val customFragShadResID: Int?) : GLSurfaceView.Renderer
 {
+
     /** Les propriétés d'affichage d'un objet/instance: matrice du modèle, tile, couleur, flags... */
     class PerInstanceUniforms {
         var model: FloatArray
@@ -48,107 +51,51 @@ class Renderer(private val coqActivity: CoqActivity,
         }
     }
 
-    lateinit var gameEngine: GameEngineBase
+    // Fonction à utiliser pour dessiner un noeud (customizable)
     var setForDrawing : (Node.() -> Surface?) = Node::defaultSetNodeForDrawing
 
-    /*-- Gestion des events (de Activity) --*/
-    /*-- Semble superflu, mais doit être dans la thread OpenGL... ??--*/
-    fun onKeyDown(key: KeyboardKey) {
-        gameEngine.keyDown(key)
-    }
-    fun onKeyUp(key: KeyboardKey) {
-        gameEngine.keyUp(key)
-    }
-    fun onConfigurationChanged() {
-        gameEngine.configurationChanged()
-    }
-    fun onTouchUp(vitRawX: Float?, vitRawY: Float?) {
-        touchDragStarted = false
-        vitRawX?.let { vx -> vitRawY?. let {vy ->
-            gameEngine.letTouchDrag(getPositionFrom(vx, vy, true))
-            return
-        }}
-        gameEngine.letTouchDrag(null)
-    }
-    private var touchDragStarted = false
-    fun onTouchDrag(posInitX: Float, posInitY: Float, posNowX: Float, posNowY: Float) {
-        val posInit = getPositionFrom(posInitX, posInitY, true)
-        val posNow = getPositionFrom(posNowX, posNowY, true)
-        if(!touchDragStarted) {
-            gameEngine.initTouchDrag(posInit)
-            touchDragStarted = true
-        }
-        gameEngine.touchDrag(posNow)
-    }
-    fun onSingleTap(posX: Float, posY: Float) {
-        val pos = getPositionFrom(posX, posY, true)
-        gameEngine.singleTap(pos)
-        touchDragStarted = false
-    }
-    fun onPause() {
-        gameEngine.appPaused()
-    }
-
+    private lateinit var root: AppRootBase
+    private var currentMesh: Mesh? = null
+    private var currentTexture: Texture? = null
 
     override fun onDrawFrame(gl: GL10?) {
         // 1. Update du temps.
         GlobalChrono.update()
 
-        // 2. Matrice de projection et "vrai" cadre de la view.
-        if (width > height) { // Landscape
-            frameFullHeight = 2f / heightRatio.pos
-            frameFullWidth = width / height * frameFullHeight
-        } else {
-            frameFullWidth = 2f / widthRatio.pos
-            frameFullHeight = height / width * frameFullWidth
-        }
-        val projection = getPerspective(
-            0.1f, 50f, gameEngine.root.z.pos,
-            frameFullWidth, frameFullHeight)
+        // 2. Matrice de projection
+
         GLES20.glUniformMatrix4fv(
             pfuProjectionID, 1,
-            false, projection, 0)
+            false, root.getProjectionMatrix(), 0)
 
         // 3. Mise à jour du temps des shaders
-        if (shadersTime.elsapsedSec > 24f) {
+        if (shadersTime.elapsedSec > 24f) {
             shadersTime.removeSec(24f)
         }
-        GLES20.glUniform1f(pfuTimeID, shadersTime.elsapsedSec)
+        GLES20.glUniform1f(pfuTimeID, shadersTime.elapsedSec)
 
-        // 4. Action du game engine avant l'affichage
-        gameEngine.willDrawFrame(frameFullWidth, frameFullHeight)
+        // 4. Action sur la structure avant l'affichage
+        root.willDrawFrame()
 
         // 5. Mise à jour de la couleur de fond.
         GLES20.glClearColor(smR.pos, smG.pos, smB.pos, 1.0f)
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
         // 6. Boucle d'affichage
-        val sq = Squirrel(gameEngine.root)
+        currentTexture = null
+        currentMesh = null
+        val sq = Squirrel(root)
         do {
             sq.pos.setForDrawing()?.draw()
         } while (sq.goToNextToDisplay())
     }
     override fun onSurfaceChanged(gl: GL10?, newWidth: Int, newHeight: Int) {
         GLES20.glViewport(0, 0, newWidth, newHeight)
-        height = newHeight.toFloat()
-        width = newWidth.toFloat()
-        val ratio = width / height
-        val usableHeight: Float
-        val usableWidth: Float
-
-        if (height > width) {
-            widthRatio.pos = bordRatio
-            heightRatio.pos = bordRatio * min(1f, ratio / usableRatioMin)
-            usableWidth = 2f
-            usableHeight = 2f * (heightRatio.realPos / widthRatio.realPos) / ratio
-        } else {
-            heightRatio.pos = bordRatio
-            widthRatio.pos = bordRatio * min(1f, usableRatioMax / ratio)
-            usableHeight = 2f
-            usableWidth = 2f * ratio * (widthRatio.realPos / heightRatio.realPos)
+        printdebug("Reshape gl surface to $newWidth x $newHeight.")
+        root.updateFrameSize(newWidth, newHeight, 0f, 0f, 0f, 0f)
+        if (!Texture.loaded) {
+            Texture.resume(coqActivity)
         }
-
-        gameEngine.viewReshaped(usableWidth, usableHeight)
     }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         fun loadShader(type: Int, shaderResource: Int) : Int {
@@ -161,10 +108,13 @@ class Renderer(private val coqActivity: CoqActivity,
             }
         }
         // 1. Création du program.
+        printdebug("Création de la surface GL.")
         val vertexShader: Int = loadShader(GLES20.GL_VERTEX_SHADER,
-            customVertShadResID ?: R.raw.shadervert)
+            customVertShadResID ?: R.raw.shadervert
+        )
         val fragmentShader: Int = loadShader(GLES20.GL_FRAGMENT_SHADER,
-            customFragShadResID ?: R.raw.shaderfrag)
+            customFragShadResID ?: R.raw.shaderfrag
+        )
         programID = GLES20.glCreateProgram().also {
             GLES20.glAttachShader(it, vertexShader)
             GLES20.glAttachShader(it, fragmentShader)
@@ -183,18 +133,29 @@ class Renderer(private val coqActivity: CoqActivity,
         piuColorID = GLES20.glGetUniformLocation(programID, "color")
         piuEmphID  = GLES20.glGetUniformLocation(programID, "emph")
         piuFlagsID = GLES20.glGetUniformLocation(programID, "flags")
+        ptuTexWHID = GLES20.glGetUniformLocation(programID, "texWH")
+        ptuTexMNID = GLES20.glGetUniformLocation(programID, "texMN")
 
-        // 3. Init de la classe Texture
-        Texture.init(programID, coqActivity)
+        // 3. Init de Texture
+        Texture.init(coqActivity)
+
         // 4. Init des vertex attributes.
         Mesh.init(programID)
 
         // 5. Init du temps des shaders.
         shadersTime.start()
 
-        // 6. Init du GameEngine...
-        gameEngine = coqActivity.getGameEngine()
+        // 6. Init de la structure
+        root = coqActivity.getTheAppRoot()
     }
+    fun onPause() {
+        Texture.suspend()
+    }
+
+    // Ne semble pas marcher...? On fait le resume dans onSurfaceChanged...
+//    fun onResume() {
+//        Texture.resume(coqActivity)
+//    }
 
     fun initClearColor(r: Float, g: Float, b: Float) {
         smR.set(r); smG.set(g); smB.set(b)
@@ -202,10 +163,79 @@ class Renderer(private val coqActivity: CoqActivity,
     fun updateClearColor(r: Float, g: Float, b: Float) {
         smR.pos = r; smG.pos = g; smB.pos = b
     }
-    fun getPositionFrom(locationInWindowX: Float, locationInWindowY: Float,
-                        invertedY: Boolean) = Vector2(
-        (locationInWindowX / width - 0.5f) * frameFullWidth,
-        (if (invertedY) -1f else 1f) * (locationInWindowY / height - 0.5f) * frameFullHeight)
+
+    /*-- Gestion des events (de Activity) --*/
+    /*-- Semble superflu, mais doit être dans la thread OpenGL... ??--*/
+    fun onKeyDown(key: KeyboardKey) {
+        when (key.keycode) {
+            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER ->
+                (root.activeScreen as? Enterable)?.let { enterable ->
+                    enterable.enterAction()
+                    return
+                }
+            KeyEvent.KEYCODE_ESCAPE ->
+                (root.activeScreen as? Escapable)?.let { escapable ->
+                    escapable.escapeAction()
+                    return
+                }
+        }
+        (root.activeScreen as? KeyResponder)?.keyDown(key)
+    }
+    fun onKeyUp(key: KeyboardKey) {
+        (root.activeScreen as? KeyResponder)?.keyUp(key)
+    }
+    fun onConfigurationChanged() {
+        printerror("Configuration changed?...")
+    }
+    fun onTouchUp(vitRawX: Float?, vitRawY: Float?) {
+        touchDragStarted = false
+        vitRawX?.let { vx -> vitRawY?. let {vy ->
+            val vit = root.getPositionFrom(vx, vy)
+            (root.selectedNode as? Draggable)?.let { draggable ->
+                val relVit = (draggable as Node).relativeDeltaOf(vit)
+                draggable.letGo(relVit)
+            }
+        }}
+        root.selectedNode = null
+        // TODO : Réviser...
+    }
+    private var touchDragStarted = false
+    fun onTouchDrag(posInitX: Float, posInitY: Float, posNowX: Float, posNowY: Float) {
+        val posInit = root.getPositionFrom(posInitX, posInitY)
+        val posNow = root.getPositionFrom(posNowX, posNowY)
+
+        if(!touchDragStarted) {
+            touchDragStarted = true
+            root.selectedNode = null
+            root.activeScreen?.searchBranchForSelectable(posInit, null)?.let { toSelect ->
+                if(toSelect is Draggable) {
+                    root.selectedNode = toSelect
+                } else { // Cas grandPa
+                    val grandPa = toSelect.parent?.parent
+                    if (grandPa is Draggable) {
+                        root.selectedNode = grandPa
+                    }
+                }
+                val relPos = root.selectedNode?.relativePosOf(posInit) ?: run {
+                    onSingleTap(posInitX, posInitY)
+                    return
+                }
+                (root.selectedNode as? Draggable)?.grab(relPos)
+            }
+        }
+        (root.selectedNode as? Draggable)?.let { draggable ->
+            val relPosNow = (draggable as Node).relativePosOf(posNow)
+            draggable.drag(relPosNow)
+        }
+    }
+    fun onSingleTap(posX: Float, posY: Float) {
+        val pos = root.getPositionFrom(posX, posY)
+        root.activeScreen?.searchBranchForSelectable(pos, null)?. let { toSelect ->
+            (toSelect as? SwitchButton)?.justTap()
+            (toSelect as? Button)?.action()
+        }
+        touchDragStarted = false
+    }
 
     /** Dessiner une surface */
     private fun Surface.draw() {
@@ -214,8 +244,11 @@ class Renderer(private val coqActivity: CoqActivity,
             Mesh.setMesh(mesh)
         }
         // 2. Mise a jour de la texture ?
-        if (tex !== Texture.currentTexture) {
-            Texture.setTexture(tex)
+        if (tex !== currentTexture) {
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, tex.glID)
+            GLES20.glUniform2f(ptuTexWHID, tex.width, tex.height)
+            GLES20.glUniform2f(ptuTexMNID, tex.m.toFloat(), tex.n.toFloat())
+            currentTexture = tex
         }
         // 3. Mise à jour des "PerInstanceUniforms"
         GLES20.glUniformMatrix4fv(
@@ -227,33 +260,19 @@ class Renderer(private val coqActivity: CoqActivity,
         GLES20.glUniform1i(piuFlagsID, piu.flags)
         // 4. Dessiner
         if (mesh.indices != null) {
-            GLES20.glDrawElements(Mesh.currentPrimitiveType,
-                mesh.indices.size, GLES20.GL_UNSIGNED_INT, 0)
+            GLES20.glDrawElements(
+                Mesh.currentPrimitiveType,
+                mesh.indices!!.size, GLES20.GL_UNSIGNED_INT, 0)
         } else {
             GLES20.glDrawArrays(Mesh.currentPrimitiveType, 0, Mesh.currentVertexCount)
         }
     }
 
     /*-- Private stuff --*/
-    private var width: Float = 1.0f // En pixels
-    private var height: Float = 1.0f
-    // Le vrai espace (toute la vue avec les bords),
-    // a priori, change à chaque frame.
-    // Le fullWidth/fullHeight de la root est changé en même temps.
-    private var frameFullWidth = 2f
-    private var frameFullHeight = 2f
-    private var widthRatio = SmoothPos(1f, 8f)
-    private var heightRatio = SmoothPos(1f, 8f)
     private var smR = SmoothPos(0f, 8f)
     private var smG = SmoothPos(0f, 8f)
     private var smB = SmoothPos(0f, 8f)
     private val shadersTime = Chrono()
-    /** Les static / global access */
-    companion object {
-        private const val usableRatioMin = 0.54f
-        private const val usableRatioMax = 1.85f
-        private var bordRatio = 0.95f
-    }
 
     /*---------------------*/
     /*-- Stuff OpenGL... --*/
@@ -268,44 +287,45 @@ class Renderer(private val coqActivity: CoqActivity,
     private var piuColorID: Int = -1
     private var piuEmphID: Int = -1
     private var piuFlagsID: Int = -1
+    // ID des "per texture uniforms"
+    private var ptuTexWHID: Int = -1
+    private var ptuTexMNID: Int = -1
 }
 
 /** La fonction utilisé par défaut pour CoqRenderer.setNodeForDrawing.
  * Retourne la surface à afficher (le noeud présent si c'est une surface). */
 private fun Node.defaultSetNodeForDrawing() : Surface? {
-    // 0.0 Prendre le model du parent.
-    parent?.let {
-        System.arraycopy(it.piu.model, 0, piu.model, 0, 16)
-    } ?: run {
-        // 0.1 Cas racine
-        (this as? RootNode)?.setModelAsCamera() ?: printerror("Root pas un RootNode.")
+    // 0. Cas racine
+    if(containsAFlag(Flag1.isRoot)) {
+        (this as RootNode).setModelMatrix()
         return null
     }
-
+    // 0.1 Copy du parent
+    val theParent = parent ?: run {
+        printerror("Pas de parent pour noeud non root.")
+        return null
+    }
+    System.arraycopy(theParent.piu.model, 0, piu.model, 0, 16)
     // 1. Cas branche
     if (firstChild != null) {
         piu.model.translate(x.pos, y.pos, z.pos)
         piu.model.scale(scaleX.pos, scaleY.pos, 1f)
         return null
     }
-
     // 3. Cas feuille
     // Laisser faire si n'est pas affichable...
     if (this !is Surface) {return null}
-
     // Facteur d'"affichage"
     val alpha = trShow.setAndGet(containsAFlag(Flag1.show))
     piu.color[3] = alpha
     // Rien à afficher...
     if (alpha == 0f) { return null }
-
     piu.model.translate(x.pos, y.pos, z.pos)
     if (containsAFlag(Flag1.poping)) {
         piu.model.scale(width.pos * alpha, height.pos * alpha, 1f)
     } else {
         piu.model.scale(width.pos, height.pos, 1f)
     }
-
     return this
 }
 

@@ -2,7 +2,7 @@
 
 package com.coq.cocoblio.maths
 
-import com.coq.cocoblio.GlobalChrono
+import com.coq.cocoblio.divers.GlobalChrono
 import kotlin.math.*
 
 /** Classe pour gérer les déplacement "smooth", i.e. avec courbe de lissage.
